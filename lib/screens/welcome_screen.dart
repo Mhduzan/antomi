@@ -19,7 +19,7 @@ class WelcomeScreen extends StatelessWidget {
               children: [
                 const Spacer(),
                 
-                // GAMBAR LOGO DI TENGAH
+                // GAMBAR LOGO BARU DI TENGAH
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -36,7 +36,7 @@ class WelcomeScreen extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(60),
                     child: Image.asset(
-                      'assets/png-transparent-human-body-organ-muscle-cartoon-human-body-hand-human-arm.png',
+                      'assets/Gemini_Generated_Image_3tqpec3tqpec3tqp.png',
                       height: 100,
                       width: 100,
                       fit: BoxFit.contain,
