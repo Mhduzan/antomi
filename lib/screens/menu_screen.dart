@@ -36,36 +36,39 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Color(0xFFF8FAFF),
       body: SafeArea(
         child: Column(
           children: [
-            // Header Profile (Seperti di referensi)
+            // Header Profile Premium
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
               child: Row(
                 children: [
+                  // Avatar dengan efek glassmorphism
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                         colors: [AppColors.primary, AppColors.primaryDark],
                       ),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          color: AppColors.primary.withOpacity(0.4),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
                     child: const Center(
                       child: Icon(
-                        Icons.person,
+                        Icons.person_rounded,
                         color: Colors.white,
-                        size: 28,
+                        size: 30,
                       ),
                     ),
                   ),
@@ -75,70 +78,59 @@ class _MenuScreenState extends State<MenuScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Halo, User!',
+                          'Selamat Belajar,',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.grey.shade500,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          'User Andomi',
                           style: GoogleFonts.poppins(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey.shade800,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.warning.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.star, size: 12, color: AppColors.warning),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '$_totalPoin Poin',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.warning,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            _buildStatChip(
+                              icon: Icons.star_rounded,
+                              label: '$_totalPoin Poin',
+                              color: AppColors.warning,
                             ),
                             const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.success.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                'Level $_levelTerbuka',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.success,
-                                ),
-                              ),
+                            _buildStatChip(
+                              icon: Icons.trending_up_rounded,
+                              label: 'Level $_levelTerbuka',
+                              color: AppColors.success,
                             ),
                           ],
                         ),
                       ],
                     ),
                   ),
-                  // Icon tambahan seperti di referensi
+                  // Settings Icon dengan efek
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.shade200,
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: const Center(
                       child: Icon(
                         Icons.settings_outlined,
-                        size: 20,
+                        size: 22,
                         color: AppColors.primary,
                       ),
                     ),
@@ -149,44 +141,44 @@ class _MenuScreenState extends State<MenuScreen> {
 
             const SizedBox(height: 8),
 
-            // Judul Menu
+            // Greeting Quote
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Menu Belajar',
-                  style: GoogleFonts.poppins(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade800,
-                  ),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Tingkatkan pengetahuan anatomi\nmu hari ini!',
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade800,
+                  height: 1.3,
                 ),
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // Grid Menu 2x2 (Seperti di referensi)
+            // Grid Menu Premium
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: GridView.count(
                   crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.85,
+                  crossAxisSpacing: 18,
+                  mainAxisSpacing: 18,
+                  childAspectRatio: 0.88,
                   shrinkWrap: true,
                   physics: const BouncingScrollPhysics(),
                   children: [
-                    _buildMenuCard(
-                      icon: Icons.quiz_outlined,
+                    _buildPremiumMenuCard(
+                      imageAsset: 'assets/quiz.png',
                       title: 'Quiz',
-                      description: 'Uji Pengetahuan',
-                      color: AppColors.primary,
-                      gradient: const LinearGradient(
+                      subtitle: 'Uji Pengetahuan',
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                         colors: [AppColors.primary, AppColors.primaryDark],
                       ),
+                      lightColor: AppColors.primary.withOpacity(0.15),
                       onTap: () async {
                         final result = await Navigator.push(
                           context,
@@ -195,14 +187,16 @@ class _MenuScreenState extends State<MenuScreen> {
                         if (result == true) _loadData();
                       },
                     ),
-                    _buildMenuCard(
-                      icon: Icons.image_search,
+                    _buildPremiumMenuCard(
+                      imageAsset: 'assets/tebak gambar.png',
                       title: 'Game',
-                      description: 'Tebak Gambar',
-                      color: AppColors.success,
-                      gradient: const LinearGradient(
-                        colors: [AppColors.success, Color(0xFF16A34A)],
+                      subtitle: 'Tebak Gambar',
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.success, Color(0xFF059669)],
                       ),
+                      lightColor: AppColors.success.withOpacity(0.15),
                       onTap: () async {
                         final result = await Navigator.push(
                           context,
@@ -211,14 +205,16 @@ class _MenuScreenState extends State<MenuScreen> {
                         if (result == true) _loadData();
                       },
                     ),
-                    _buildMenuCard(
-                      icon: Icons.person_outline,
+                    _buildPremiumMenuCard(
+                      icon: Icons.person_rounded,
                       title: 'Profil',
-                      description: 'Lihat Progres',
-                      color: AppColors.warning,
-                      gradient: const LinearGradient(
-                        colors: [AppColors.warning, Color(0xFFD97706)],
+                      subtitle: 'Lihat Progres',
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.warning, Color(0xFFEA580C)],
                       ),
+                      lightColor: AppColors.warning.withOpacity(0.15),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -226,14 +222,16 @@ class _MenuScreenState extends State<MenuScreen> {
                         ).then((_) => _loadData());
                       },
                     ),
-                    _buildMenuCard(
-                      icon: Icons.info_outline,
+                    _buildPremiumMenuCard(
+                      icon: Icons.info_rounded,
                       title: 'Tentang',
-                      description: 'Info Aplikasi',
-                      color: const Color(0xFFF34F6F),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFF34F6F), Color(0xFFE11D48)],
+                      subtitle: 'Info Aplikasi',
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFFF34F6F), Color(0xFFBE185D)],
                       ),
+                      lightColor: const Color(0xFFF34F6F).withOpacity(0.15),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -248,59 +246,42 @@ class _MenuScreenState extends State<MenuScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.shade200,
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+    );
+  }
+
+  Widget _buildStatChip({required IconData icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildBottomNavItem(Icons.home, 'Home', true),
-            _buildBottomNavItem(Icons.quiz, 'Quiz', false),
-            _buildBottomNavItem(Icons.image_search, 'Game', false),
-            _buildBottomNavItem(Icons.person, 'Profil', false),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildBottomNavItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: isActive ? AppColors.primary : Colors.grey.shade400,
-          size: 24,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 10,
-            color: isActive ? AppColors.primary : Colors.grey.shade400,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMenuCard({
-    required IconData icon,
+  // PREMIUM MENU CARD dengan GAMBAR
+  Widget _buildPremiumMenuCard({
+    String? imageAsset,
+    IconData? icon,
     required String title,
-    required String description,
-    required Color color,
+    required String subtitle,
     required LinearGradient gradient,
+    required Color lightColor,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -308,41 +289,111 @@ class _MenuScreenState extends State<MenuScreen> {
       child: Container(
         decoration: BoxDecoration(
           gradient: gradient,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+              color: lightColor,
+              blurRadius: 20,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 36, color: Colors.white),
-            ),
-            const SizedBox(height: 14),
-            Text(
-              title,
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            // Decorative blur circle
+            Positioned(
+              top: -20,
+              right: -20,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              description,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: Colors.white70,
+            Positioned(
+              bottom: -30,
+              left: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Icon container with glass effect
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.4),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.2),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: imageAsset != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(50),
+                              child: Image.asset(
+                                imageAsset,
+                                height: 50,
+                                width: 50,
+                                fit: BoxFit.contain,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(icon ?? Icons.abc, size: 40, color: Colors.white);
+                                },
+                              ),
+                            )
+                          : Icon(icon, size: 42, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
