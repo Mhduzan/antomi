@@ -1,0 +1,6 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/anatomilogo.jpg"
+  adaptive_icon_background: "#667eea"
+  adaptive_icon_foreground: "assets/anatomilogo.jpg"
