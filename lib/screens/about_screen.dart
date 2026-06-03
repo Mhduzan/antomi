@@ -1,3 +1,4 @@
+// lib/screens/about_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
@@ -10,930 +11,497 @@ class AboutScreen extends StatefulWidget {
   State<AboutScreen> createState() => _AboutScreenState();
 }
 
-class _AboutScreenState extends State<AboutScreen> with TickerProviderStateMixin {
-  late AnimationController _rotateController;
-  late AnimationController _pulseController;
-  late AnimationController _waveController;
-  late AnimationController _floatController;
-  late AnimationController _bounceController;
-  late AnimationController _slideController;
-  
-  late Animation<double> _rotateAnimation;
-  late Animation<double> _pulseAnimation;
-  late Animation<double> _waveAnimation;
-  late Animation<double> _floatAnimation;
-  late Animation<double> _bounceAnimation;
-  late Animation<Offset> _slideAnimation;
+class _AboutScreenState extends State<AboutScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseCtrl;
+  late AnimationController _slideCtrl;
+  late AnimationController _rotateCtrl;
+  late AnimationController _waveCtrl;
+
+  late Animation<double> _pulseAnim;
+  late Animation<Offset> _slideAnim;
+  late Animation<double> _rotateAnim;
+  late Animation<double> _waveAnim;
 
   @override
   void initState() {
     super.initState();
-    
-    // Rotasi logo
-    _rotateController = AnimationController(
-      duration: const Duration(seconds: 15),
-      vsync: this,
-    )..repeat();
-    _rotateAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(_rotateController);
-    
-    // Pulse untuk logo dan avatar
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-    
-    // Gelombang background
-    _waveController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat();
-    _waveAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(_waveController);
-    
-    // Float untuk kartu
-    _floatController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat(reverse: true);
-    _floatAnimation = Tween<double>(begin: -8, end: 8).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-    
-    // Bounce untuk fitur
-    _bounceController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    )..repeat(reverse: true);
-    _bounceAnimation = Tween<double>(begin: 0, end: -10).animate(
-      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
-    );
-    
-    // Slide untuk konten
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    )..forward();
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+
+    _pulseCtrl = AnimationController(
+        duration: const Duration(milliseconds: 1400), vsync: this)
+      ..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.05).animate(
+        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+
+    _rotateCtrl = AnimationController(
+        duration: const Duration(seconds: 20), vsync: this)
+      ..repeat();
+    _rotateAnim = Tween<double>(begin: 0, end: 2 * math.pi)
+        .animate(_rotateCtrl);
+
+    _waveCtrl = AnimationController(
+        duration: const Duration(seconds: 4), vsync: this)
+      ..repeat();
+    _waveAnim = Tween<double>(begin: 0, end: 2 * math.pi)
+        .animate(_waveCtrl);
+
+    _slideCtrl = AnimationController(
+        duration: const Duration(milliseconds: 800), vsync: this)
+      ..forward();
+    _slideAnim =
+        Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero)
+            .animate(CurvedAnimation(
+                parent: _slideCtrl, curve: Curves.easeOutCubic));
   }
 
   @override
   void dispose() {
-    _rotateController.dispose();
-    _pulseController.dispose();
-    _waveController.dispose();
-    _floatController.dispose();
-    _bounceController.dispose();
-    _slideController.dispose();
+    _pulseCtrl.dispose();
+    _slideCtrl.dispose();
+    _rotateCtrl.dispose();
+    _waveCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Tentang Aplikasi',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: const Color(0xFF667eea),
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF667eea), Color(0xFF764ba2), Color(0xFFf093fb), Color(0xFFf5576c)],
-          ),
-        ),
-        child: Stack(
-          children: [
-            // Background gelombang
-            _buildWaveBackground(),
-            
-            // Partikel mengambang
-            _buildFloatingParticles(),
-            
-            // Konten utama
-            SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    
-                    // Logo UNRI dengan animasi
-                    _buildAnimatedLogo(),
-                    
-                    const SizedBox(height: 30),
-                    
-                    // Nama Universitas
-                    SlideTransition(
-                      position: _slideAnimation,
-                      child: _buildUniversityInfo(),
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          // Blue header
+          Container(
+            decoration: const BoxDecoration(
+                gradient: AppColors.primaryGradient),
+            child: SafeArea(
+              bottom: false,
+              child: Stack(
+                children: [
+                  // Wave bg
+                  AnimatedBuilder(
+                    animation: _waveAnim,
+                    builder: (_, __) => CustomPaint(
+                      size: const Size(double.infinity, 180),
+                      painter: _AboutWavePainter(_waveAnim.value),
                     ),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Card Aplikasi
-                    SlideTransition(
-                      position: _slideAnimation,
-                      child: _buildAppCard(),
-                    ),
-                    
-                    const SizedBox(height: 30),
-                    
-                    // Deskripsi Aplikasi
-                    SlideTransition(
-                      position: _slideAnimation,
-                      child: _buildDescriptionCard(),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Fitur Aplikasi
-                    SlideTransition(
-                      position: _slideAnimation,
-                      child: _buildFeaturesGrid(),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Tujuan Penelitian
-                    SlideTransition(
-                      position: _slideAnimation,
-                      child: _buildResearchCard(),
-                    ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Informasi Pengembang
-                    SlideTransition(
-                      position: _slideAnimation,
-                      child: _buildDeveloperCard(),
-                    ),
-                    
-                    const SizedBox(height: 30),
-                    
-                    // Tombol Kembali
-                    _buildBackButton(context),
-                    
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWaveBackground() {
-    return AnimatedBuilder(
-      animation: _waveController,
-      builder: (context, child) {
-        return CustomPaint(
-          size: Size.infinite,
-          painter: AboutWavePainter(waveValue: _waveAnimation.value),
-        );
-      },
-    );
-  }
-
-  Widget _buildFloatingParticles() {
-    return Stack(
-      children: List.generate(25, (index) {
-        final size = MediaQuery.of(context).size;
-        return Positioned(
-          left: (index * 59) % size.width,
-          top: (index * 41) % size.height,
-          child: TweenAnimationBuilder(
-            tween: Tween<double>(begin: 0, end: 2 * math.pi),
-            duration: Duration(seconds: 4 + (index % 5)),
-            builder: (context, double value, child) {
-              return Transform.translate(
-                offset: Offset(math.sin(value) * 25, math.cos(value * 1.5) * 25),
-                child: Container(
-                  width: 5 + (index % 10),
-                  height: 5 + (index % 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
                   ),
-                ),
-              );
-            },
-          ),
-        );
-      }),
-    );
-  }
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                    child: Column(
+                      children: [
+                        // AppBar row
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.arrow_back_ios_rounded,
+                                    color: Colors.white, size: 16),
+                              ),
+                            ),
+                            Expanded(
+                              child: Center(
+                                child: Text(
+                                  'Tentang Aplikasi',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 36),
+                          ],
+                        ),
 
-  Widget _buildAnimatedLogo() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_rotateController, _pulseController]),
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _pulseAnimation.value,
-          child: Transform.rotate(
-            angle: _rotateAnimation.value,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withOpacity(0.3),
-                    Colors.white.withOpacity(0.1),
-                  ],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.3),
-                    blurRadius: 30,
-                    spreadRadius: 10,
-                    offset: const Offset(0, 0),
+                        const SizedBox(height: 20),
+
+                        // Rotating logo
+                        AnimatedBuilder(
+                          animation: Listenable.merge([_rotateCtrl, _pulseCtrl]),
+                          builder: (_, __) => Transform.scale(
+                            scale: _pulseAnim.value,
+                            child: Container(
+                              width: 86,
+                              height: 86,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.white.withOpacity(0.25),
+                                    blurRadius: 20,
+                                    spreadRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: Image.asset(
+                                  'assets/LOGO-UNRI.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.school_rounded,
+                                    size: 44,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        Text(
+                          'UNIVERSITAS RIAU',
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        Text(
+                          'Fakultas Keguruan dan Ilmu Pendidikan',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(80),
-                  child: Image.asset(
-                    'assets/LOGO-UNRI.png',
-                    width: 140,
-                    height: 140,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.school,
-                        size: 80,
-                        color: Colors.white,
-                      );
-                    },
-                  ),
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: SlideTransition(
+              position: _slideAnim,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                child: Column(
+                  children: [
+                    // App info card
+                    _buildCard(
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 72,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.3),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.medical_services_rounded,
+                                size: 36, color: Colors.white),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Anatomi Quiz Game',
+                            style: GoogleFonts.poppins(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryPale,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Versi 2.0.0',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // About text
+                    _buildInfoCard(
+                      title: 'Tentang Aplikasi',
+                      icon: Icons.info_rounded,
+                      content:
+                          'Aplikasi ini merupakan media pembelajaran interaktif berbasis game quiz yang dirancang untuk membantu mahasiswa dan pelajar dalam memahami materi anatomi tubuh manusia. Dengan pendekatan yang menyenangkan, pengguna dapat menguji dan meningkatkan pengetahuan mereka tentang sistem otot, tulang, dan sendi.',
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Features grid
+                    _buildCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _sectionTitle(Icons.star_rounded, 'Fitur Unggulan',
+                              AppColors.warning),
+                          const SizedBox(height: 14),
+                          GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: 1.1,
+                            children: [
+                              _featureTile(Icons.quiz_rounded, '3 Level',
+                                  AppColors.primary),
+                              _featureTile(Icons.accessibility_new_rounded,
+                                  'Anatomi\nLengkap', AppColors.success),
+                              _featureTile(Icons.image_rounded,
+                                  'Visual\nGambar', const Color(0xFFEC4899)),
+                              _featureTile(Icons.emoji_events_rounded,
+                                  'Sistem\nPoin', AppColors.warning),
+                              _featureTile(Icons.trending_up_rounded,
+                                  'Track\nProgress', const Color(0xFF06B6D4)),
+                              _featureTile(Icons.psychology_rounded,
+                                  'Edukatif', AppColors.danger),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Tujuan penelitian
+                    _buildInfoCard(
+                      title: 'Tujuan Penelitian',
+                      icon: Icons.school_rounded,
+                      content:
+                          'Aplikasi ini dikembangkan sebagai bagian dari skripsi untuk memenuhi persyaratan gelar Sarjana Pendidikan di Universitas Riau. Tujuannya adalah mengembangkan media pembelajaran interaktif yang efektif untuk meningkatkan pemahaman mahasiswa pada materi anatomi tubuh manusia.',
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Developer card
+                    _buildCard(
+                      child: Row(
+                        children: [
+                          AnimatedBuilder(
+                            animation: _pulseCtrl,
+                            builder: (_, __) => Transform.scale(
+                              scale: _pulseAnim.value,
+                              child: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  gradient: AppColors.primaryGradient,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          AppColors.primary.withOpacity(0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(Icons.person_rounded,
+                                    color: Colors.white, size: 30),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Ulva',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  'Pengembang · Skripsi Biologi',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryPale,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Tahun Akademik 2024/2025',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
-  Widget _buildUniversityInfo() {
-    return Column(
+  Widget _buildCard({required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildInfoCard(
+      {required String title,
+      required IconData icon,
+      required String content}) {
+    return _buildCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionTitle(icon, title, AppColors.primary),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.6,
+            ),
+            textAlign: TextAlign.justify,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(IconData icon, String title, Color color) {
+    return Row(
       children: [
-        ShaderMask(
-          shaderCallback: (bounds) {
-            return LinearGradient(
-              colors: [Colors.white, Colors.yellow.shade300],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ).createShader(bounds);
-          },
-          child: Text(
-            'UNIVERSITAS RIAU',
-            style: GoogleFonts.poppins(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
         Container(
-          width: 80,
-          height: 3,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white, Colors.yellow.shade300],
-            ),
-            borderRadius: BorderRadius.circular(2),
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
           ),
+          child: Icon(icon, color: color, size: 18),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(width: 10),
         Text(
-          'Fakultas Keguruan dan Ilmu Pendidikan',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: Colors.white70,
-            letterSpacing: 0.5,
-          ),
-        ),
-        Text(
-          'Pendidikan Biologi',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
+          title,
+          style: GoogleFonts.poppins(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildAppCard() {
-    return AnimatedBuilder(
-      animation: _floatAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _floatAnimation.value),
-          child: Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white, Color(0xFFF0F0F0)],
-              ),
-              borderRadius: BorderRadius.circular(32),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.white.withOpacity(0.3),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                AnimatedBuilder(
-                  animation: _rotateController,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _rotateAnimation.value,
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.health_and_safety,
-                          size: 56,
-                          color: Colors.white,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Anatomi Quiz Game',
-                  style: GoogleFonts.poppins(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF667eea),
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                    ),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Text(
-                    'Versi 2.0.0',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDescriptionCard() {
+  Widget _featureTile(IconData icon, String label, Color color) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.15), width: 1),
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              _buildGradientIcon(Icons.info_outline),
-              const SizedBox(width: 12),
-              Text(
-                'Tentang Aplikasi',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF667eea),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
           Text(
-            'Aplikasi ini merupakan media pembelajaran interaktif berbasis game quiz yang dirancang untuk membantu mahasiswa dan pelajar dalam memahami materi anatomi tubuh manusia. Dengan pendekatan yang menyenangkan, pengguna dapat menguji dan meningkatkan pengetahuan mereka tentang sistem otot, tulang, dan sendi.',
-            textAlign: TextAlign.justify,
+            label,
+            textAlign: TextAlign.center,
             style: GoogleFonts.inter(
-              fontSize: 14,
-              height: 1.6,
-              color: Colors.grey.shade700,
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color,
+              height: 1.3,
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFeaturesGrid() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.95),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              _buildGradientIcon(Icons.star),
-              const SizedBox(width: 12),
-              Text(
-                'Fitur Unggulan',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF667eea),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.4,
-            children: [
-              _buildAnimatedFeatureItem(
-                icon: Icons.quiz,
-                title: '3 Level',
-                description: 'Dasar s.d Mahir',
-                color: const Color(0xFF4158D0),
-                delay: 0,
-              ),
-              _buildAnimatedFeatureItem(
-                icon: Icons.accessibility_new,
-                title: 'Anatomi Lengkap',
-                description: 'Otot, Tulang, Sendi',
-                color: const Color(0xFF43E97B),
-                delay: 200,
-              ),
-              _buildAnimatedFeatureItem(
-                icon: Icons.image,
-                title: 'Visual Gambar',
-                description: 'Ilustrasi edukatif',
-                color: const Color(0xFFFA709A),
-                delay: 400,
-              ),
-              _buildAnimatedFeatureItem(
-                icon: Icons.emoji_events,
-                title: 'Sistem Poin',
-                description: 'Reward pencapaian',
-                color: const Color(0xFFFEE140),
-                delay: 600,
-              ),
-              _buildAnimatedFeatureItem(
-                icon: Icons.trending_up,
-                title: 'Tracking',
-                description: 'Pantau progress',
-                color: const Color(0xFF30CFD0),
-                delay: 800,
-              ),
-              _buildAnimatedFeatureItem(
-                icon: Icons.psychology,
-                title: 'Edukatif',
-                description: 'Belajar interaktif',
-                color: const Color(0xFFF5576C),
-                delay: 1000,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnimatedFeatureItem({
-    required IconData icon,
-    required String title,
-    required String description,
-    required Color color,
-    required int delay,
-  }) {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: Duration(milliseconds: 500 + delay),
-      builder: (context, double opacity, child) {
-        return Opacity(
-          opacity: opacity,
-          child: Transform.scale(
-            scale: opacity,
-            child: AnimatedBuilder(
-              animation: _bounceAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(0, title == '3 Level' ? _bounceAnimation.value : 0),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [color.withOpacity(0.1), Colors.white],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [color, color.withOpacity(0.7)],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Icon(icon, size: 24, color: Colors.white),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          title,
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: color,
-                          ),
-                        ),
-                        Text(
-                          description,
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            color: Colors.grey.shade600,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildResearchCard() {
-    return AnimatedBuilder(
-      animation: _floatAnimation,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(_floatAnimation.value * 0.5, 0),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.blue.shade50, Colors.purple.shade50],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.blue.shade200, width: 1.5),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    _buildWaveIcon(Icons.school),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Tujuan Penelitian',
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue.shade800,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Aplikasi ini dikembangkan sebagai bagian dari skripsi untuk memenuhi persyaratan gelar Sarjana Pendidikan di Universitas Riau. Tujuannya adalah mengembangkan media pembelajaran interaktif yang efektif untuk meningkatkan pemahaman mahasiswa pada materi anatomi tubuh manusia.',
-                  textAlign: TextAlign.justify,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    height: 1.6,
-                    color: Colors.blue.shade900,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildWaveIcon(IconData icon) {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 2 * math.pi),
-      duration: const Duration(seconds: 2),
-      builder: (context, double angle, child) {
-        final double offsetY = math.sin(angle) * 5;
-        return Transform.translate(
-          offset: Offset(0, offsetY),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildDeveloperCard() {
-    return AnimatedBuilder(
-      animation: _floatController,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _floatAnimation.value * 0.5),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.95),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                _buildPulsingAvatar(),
-                const SizedBox(height: 16),
-                Text(
-                  'Ulva',
-                  style: GoogleFonts.poppins(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF667eea),
-                  ),
-                ),
-                Text(
-                  'Pengembang',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [const Color(0xFF667eea).withOpacity(0.1), const Color(0xFF764ba2).withOpacity(0.1)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Skripsi - Pendidikan Biologi',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF667eea),
-                        ),
-                      ),
-                      Text(
-                        'Universitas Riau',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.calendar_today, size: 14, color: Colors.grey.shade500),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Tahun Akademik 2024/2025',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.grey.shade500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPulsingAvatar() {
-    return AnimatedBuilder(
-      animation: _pulseAnimation,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _pulseAnimation.value,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF6B6B), Color(0xFFFF8E8E)],
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFF6B6B).withOpacity(0.4),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: const CircleAvatar(
-              radius: 45,
-              backgroundColor: Colors.transparent,
-              child: Icon(
-                Icons.person,
-                size: 55,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildGradientIcon(IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: Colors.white, size: 20),
-    );
-  }
-
-  Widget _buildBackButton(BuildContext context) {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 500),
-      builder: (context, double scale, child) {
-        return Transform.scale(
-          scale: 0.98 + (scale * 0.02),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF667eea),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                elevation: 8,
-                shadowColor: Colors.white.withOpacity(0.5),
-              ),
-              child: Text(
-                'Kembali ke Menu',
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
 
-// Custom Painter untuk efek gelombang
-class AboutWavePainter extends CustomPainter {
-  final double waveValue;
-  
-  AboutWavePainter({required this.waveValue});
-  
+class _AboutWavePainter extends CustomPainter {
+  final double wave;
+  _AboutWavePainter(this.wave);
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = Colors.white.withOpacity(0.06)
       ..style = PaintingStyle.fill;
-    
+
     final path = Path();
     path.moveTo(0, size.height * 0.7);
-    
-    for (double i = 0; i <= size.width; i += 10) {
-      double y = size.height * 0.7 + math.sin((i * 0.02) + waveValue) * 20;
-      path.lineTo(i, y);
+    for (double x = 0; x <= size.width; x += 8) {
+      path.lineTo(
+          x, size.height * 0.7 + math.sin((x * 0.02) + wave) * 18);
     }
-    
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
     path.close();
-    
     canvas.drawPath(path, paint);
-    
-    // Gelombang kedua
-    final paint2 = Paint()
-      ..color = Colors.white.withOpacity(0.05)
-      ..style = PaintingStyle.fill;
-    
-    final path2 = Path();
-    path2.moveTo(0, size.height * 0.75);
-    
-    for (double i = 0; i <= size.width; i += 10) {
-      double y = size.height * 0.75 + math.cos((i * 0.025) + waveValue * 1.5) * 25;
-      path2.lineTo(i, y);
-    }
-    
-    path2.lineTo(size.width, size.height);
-    path2.lineTo(0, size.height);
-    path2.close();
-    
-    canvas.drawPath(path2, paint2);
   }
-  
+
   @override
-  bool shouldRepaint(AboutWavePainter oldDelegate) {
-    return oldDelegate.waveValue != waveValue;
-  }
+  bool shouldRepaint(_AboutWavePainter old) => old.wave != wave;
 }

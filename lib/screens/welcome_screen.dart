@@ -1,3 +1,4 @@
+// lib/screens/welcome_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
@@ -11,486 +12,432 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateMixin {
-  late AnimationController _rotateController;
-  late AnimationController _pulseController;
-  late AnimationController _waveController;
-  late AnimationController _slideController;
-  late AnimationController _fadeController;
-  
-  late Animation<double> _rotateAnimation;
-  late Animation<double> _pulseAnimation;
-  late Animation<double> _waveAnimation;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _waveCtrl;
+  late AnimationController _pulseCtrl;
+  late AnimationController _slideCtrl;
+  late AnimationController _floatCtrl;
+
+  late Animation<double> _waveAnim;
+  late Animation<double> _pulseAnim;
+  late Animation<Offset> _slideAnim;
+  late Animation<double> _floatAnim;
+  late Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
-    
-    // 1. Rotasi logo
-    _rotateController = AnimationController(
-      duration: const Duration(seconds: 20),
-      vsync: this,
-    )..repeat();
-    _rotateAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(_rotateController);
-    
-    // 2. Pulse untuk logo
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-    
-    // 3. Gelombang background
-    _waveController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat();
-    _waveAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(_waveController);
-    
-    // 4. Slide untuk konten
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    )..forward();
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
-    
-    // 5. Fade untuk tombol
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    )..forward();
-    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
-    );
+
+    _waveCtrl = AnimationController(
+        duration: const Duration(seconds: 4), vsync: this)
+      ..repeat();
+    _waveAnim = Tween<double>(begin: 0, end: 2 * math.pi).animate(_waveCtrl);
+
+    _pulseCtrl = AnimationController(
+        duration: const Duration(milliseconds: 1600), vsync: this)
+      ..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.07).animate(
+        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+
+    _floatCtrl = AnimationController(
+        duration: const Duration(milliseconds: 2000), vsync: this)
+      ..repeat(reverse: true);
+    _floatAnim = Tween<double>(begin: -8, end: 8).animate(
+        CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
+
+    _slideCtrl = AnimationController(
+        duration: const Duration(milliseconds: 900), vsync: this)
+      ..forward();
+    _slideAnim = Tween<Offset>(
+            begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+            CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
+    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOut));
   }
 
   @override
   void dispose() {
-    _rotateController.dispose();
-    _pulseController.dispose();
-    _waveController.dispose();
-    _slideController.dispose();
-    _fadeController.dispose();
+    _waveCtrl.dispose();
+    _pulseCtrl.dispose();
+    _slideCtrl.dispose();
+    _floatCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF667eea),
-              const Color(0xFF764ba2),
-              const Color(0xFFf093fb),
-              const Color(0xFFf5576c),
-            ],
-            stops: const [0.0, 0.3, 0.7, 1.0],
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // Top blue header area
+          Container(
+            height: size.height * 0.55,
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
+              ),
+            ),
           ),
-        ),
-        child: Stack(
-          children: [
-            // Animasi gelombang
-            _buildWaveBackground(),
-            
-            // Bola-bola mengambang
-            _buildFloatingParticles(),
-            
-            // Bintang berkilau
-            _buildTwinklingStars(),
-            
-            // Konten utama
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Spacer(),
-                    
-                    // Logo dengan animasi
-                    _buildAnimatedLogo(),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Teks dengan animasi slide
-                    SlideTransition(
-                      position: _slideAnimation,
+
+          // Wave animation on header
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(40),
+              bottomRight: Radius.circular(40),
+            ),
+            child: SizedBox(
+              height: size.height * 0.55,
+              child: AnimatedBuilder(
+                animation: _waveAnim,
+                builder: (_, __) => CustomPaint(
+                  size: Size.infinite,
+                  painter: _WelcomeWavePainter(_waveAnim.value),
+                ),
+              ),
+            ),
+          ),
+
+          // Floating decoration circles
+          ..._buildDecoCircles(size),
+
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: 32),
+
+                // Logo floating animation
+                AnimatedBuilder(
+                  animation:
+                      Listenable.merge([_pulseCtrl, _floatCtrl]),
+                  builder: (_, __) {
+                    return Transform.translate(
+                      offset: Offset(0, _floatAnim.value),
+                      child: Transform.scale(
+                        scale: _pulseAnim.value,
+                        child: Container(
+                          width: 130,
+                          height: 130,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    AppColors.primary.withOpacity(0.25),
+                                blurRadius: 30,
+                                offset: const Offset(0, 10),
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/Gemini_Generated_Image_3tqpec3tqpec3tqp.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.medical_services_rounded,
+                                size: 64,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // Title
+                FadeTransition(
+                  opacity: _fadeAnim,
+                  child: SlideTransition(
+                    position: _slideAnim,
+                    child: Column(
+                      children: [
+                        Text(
+                          'ANATOMI',
+                          style: GoogleFonts.poppins(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 3,
+                          ),
+                        ),
+                        Text(
+                          'QUIZ GAME',
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withOpacity(0.85),
+                            letterSpacing: 5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Belajar Anatomi Jadi Lebih Seru!',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.75),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // White card area
+                Expanded(
+                  child: FadeTransition(
+                    opacity: _fadeAnim,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color:
+                                AppColors.primary.withOpacity(0.12),
+                            blurRadius: 30,
+                            offset: const Offset(0, -4),
+                          ),
+                        ],
+                      ),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ShaderMask(
-                            shaderCallback: (bounds) {
-                              return LinearGradient(
-                                colors: [Colors.white, Colors.yellow.shade300],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ).createShader(bounds);
-                            },
-                            child: Text(
-                              'Quiz Game Anatomi',
-                              style: GoogleFonts.poppins(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 1,
+                          // Feature pills
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              _featurePill(
+                                  Icons.quiz_outlined, '3 Level Quiz'),
+                              _featurePill(
+                                  Icons.gamepad_outlined, 'Tebak Gambar'),
+                              _featurePill(Icons.emoji_events_outlined,
+                                  'Sistem Poin'),
+                              _featurePill(Icons.trending_up_rounded,
+                                  'Track Progress'),
+                            ],
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // Mulai button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 54,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  PageRouteBuilder(
+                                    pageBuilder: (_, __, ___) =>
+                                        const MenuScreen(),
+                                    transitionsBuilder:
+                                        (_, anim, __, child) =>
+                                            FadeTransition(
+                                                opacity: anim,
+                                                child: child),
+                                    transitionDuration: const Duration(
+                                        milliseconds: 400),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'MULAI',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.arrow_forward_rounded,
+                                      size: 20),
+                                ],
                               ),
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          Container(
-                            width: 80,
-                            height: 3,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.white, Colors.yellow.shade300],
+
+                          const SizedBox(height: 12),
+
+                          // Login button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                        'Fitur login akan segera hadir!'),
+                                    backgroundColor: AppColors.primary,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                  ),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: const BorderSide(
+                                    color: AppColors.primary, width: 1.5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Tingkatkan pengetahuanmu tentang\nanatomi tubuh manusia',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: 15,
-                              color: Colors.white70,
-                              height: 1.5,
+                              child: Text(
+                                'LOGIN (opsional)',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    
-                    const SizedBox(height: 60),
-                    
-                    // Tombol Mulai dengan animasi
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: Column(
-                          children: [
-                            _buildAnimatedButton(),
-                            const SizedBox(height: 20),
-                            _buildGlassButton(),
-                          ],
-                        ),
-                      ),
-                    ),
-                    
-                    const Spacer(),
-                    
-                    // Footer dengan animasi
-                    _buildAnimatedFooter(),
-                  ],
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 16),
+
+                Text(
+                  '© 2024 Anatomi Quiz Game · Untuk Pembelajaran Biologi',
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    color: AppColors.textLight,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildWaveBackground() {
-    return AnimatedBuilder(
-      animation: _waveController,
-      builder: (context, child) {
-        return CustomPaint(
-          size: Size.infinite,
-          painter: WelcomeWavePainter(waveValue: _waveAnimation.value),
-        );
-      },
-    );
-  }
-
-  Widget _buildFloatingParticles() {
-    return Stack(
-      children: List.generate(20, (index) {
-        final size = MediaQuery.of(context).size;
-        return Positioned(
-          left: (index * 73) % size.width,
-          top: (index * 47) % size.height,
-          child: TweenAnimationBuilder(
-            tween: Tween<double>(begin: 0, end: 2 * math.pi),
-            duration: Duration(seconds: 3 + (index % 5)),
-            builder: (context, double value, child) {
-              return Transform.translate(
-                offset: Offset(math.sin(value) * 30, math.cos(value * 1.5) * 30),
-                child: Container(
-                  width: 4 + (index % 8),
-                  height: 4 + (index % 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15 + (index % 5) * 0.02),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              );
-            },
+  Widget _featurePill(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.primaryPale,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: AppColors.primary.withOpacity(0.15), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
           ),
-        );
-      }),
+        ],
+      ),
     );
   }
 
-  Widget _buildTwinklingStars() {
-    return Stack(
-      children: List.generate(30, (index) {
-        final size = MediaQuery.of(context).size;
-        return Positioned(
-          left: (index * 37) % size.width,
-          top: (index * 53) % size.height,
-          child: TweenAnimationBuilder(
-            tween: Tween<double>(begin: 0, end: 1),
-            duration: Duration(seconds: 2 + (index % 3)),
-            builder: (context, double value, child) {
-              final opacity = (math.sin(value * math.pi) * 0.5 + 0.5);
-              return Opacity(
-                opacity: opacity,
-                child: Icon(
-                  Icons.star,
-                  size: 8 + (index % 6),
-                  color: Colors.white.withOpacity(0.6),
-                ),
-              );
-            },
-          ),
-        );
-      }),
-    );
-  }
-
-  Widget _buildAnimatedLogo() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_rotateController, _pulseController]),
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _pulseAnimation.value,
-          child: Transform.rotate(
-            angle: _rotateAnimation.value,
+  List<Widget> _buildDecoCircles(Size size) {
+    return [
+      Positioned(
+        right: -30,
+        top: size.height * 0.08,
+        child: AnimatedBuilder(
+          animation: _waveAnim,
+          builder: (_, __) => Transform.translate(
+            offset: Offset(math.sin(_waveAnim.value) * 10, 0),
             child: Container(
-              padding: const EdgeInsets.all(24),
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withOpacity(0.3),
-                    Colors.white.withOpacity(0.1),
-                  ],
-                ),
+                color: Colors.white.withOpacity(0.08),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.white.withOpacity(0.3),
-                    blurRadius: 30,
-                    spreadRadius: 10,
-                    offset: const Offset(0, 0),
-                  ),
-                ],
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(60),
-                  child: Image.asset(
-                    'assets/Gemini_Generated_Image_3tqpec3tqpec3tqp.png',
-                    height: 100,
-                    width: 100,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.health_and_safety,
-                        size: 80,
-                        color: Colors.white,
-                      );
-                    },
-                  ),
-                ),
               ),
             ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAnimatedButton() {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 500),
-      builder: (context, double scale, child) {
-        return Transform.scale(
-          scale: 0.95 + (scale * 0.05),
-          child: SizedBox(
-            width: double.infinity,
-            height: 60,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MenuScreen()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFF667eea),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                elevation: 8,
-                shadowColor: Colors.white.withOpacity(0.5),
-              ),
-              child: Text(
-                'Mulai Sekarang',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildGlassButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: TextButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Fitur login akan segera hadir!'),
-              backgroundColor: Colors.white,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              duration: const Duration(seconds: 2),
-              action: SnackBarAction(
-                label: 'OK',
-                textColor: const Color(0xFF667eea),
-                onPressed: () {},
-              ),
-            ),
-          );
-        },
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-        child: Text(
-          'Login / Daftar',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: Colors.white70,
-            fontWeight: FontWeight.w500,
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildAnimatedFooter() {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 1000),
-      builder: (context, double opacity, child) {
-        return Opacity(
-          opacity: opacity,
-          child: Column(
-            children: [
-              const Divider(
-                color: Colors.white24,
-                thickness: 1,
-                indent: 50,
-                endIndent: 50,
+      Positioned(
+        left: -20,
+        top: size.height * 0.25,
+        child: AnimatedBuilder(
+          animation: _waveAnim,
+          builder: (_, __) => Transform.translate(
+            offset: Offset(math.cos(_waveAnim.value) * 8, 0),
+            child: Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.06),
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 10),
-              Text(
-                '© 2024 Anatomi Quiz Game',
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  color: Colors.white38,
-                ),
-              ),
-              Text(
-                'Untuk Pembelajaran Biologi',
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  color: Colors.white38,
-                ),
-              ),
-            ],
+            ),
           ),
-        );
-      },
-    );
+        ),
+      ),
+    ];
   }
 }
 
-// Custom Painter untuk efek gelombang
-class WelcomeWavePainter extends CustomPainter {
-  final double waveValue;
-  
-  WelcomeWavePainter({required this.waveValue});
-  
+class _WelcomeWavePainter extends CustomPainter {
+  final double wave;
+  _WelcomeWavePainter(this.wave);
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = Colors.white.withOpacity(0.06)
       ..style = PaintingStyle.fill;
-    
+
     final path = Path();
     path.moveTo(0, size.height * 0.8);
-    
-    for (double i = 0; i <= size.width; i += 10) {
-      double y = size.height * 0.8 + math.sin((i * 0.02) + waveValue) * 20;
-      path.lineTo(i, y);
+    for (double x = 0; x <= size.width; x += 8) {
+      path.lineTo(x,
+          size.height * 0.8 + math.sin((x * 0.02) + wave) * 18);
     }
-    
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
     path.close();
-    
     canvas.drawPath(path, paint);
-    
-    // Gelombang kedua
-    final paint2 = Paint()
-      ..color = Colors.white.withOpacity(0.05)
-      ..style = PaintingStyle.fill;
-    
-    final path2 = Path();
-    path2.moveTo(0, size.height * 0.85);
-    
-    for (double i = 0; i <= size.width; i += 10) {
-      double y = size.height * 0.85 + math.cos((i * 0.025) + waveValue * 1.5) * 25;
-      path2.lineTo(i, y);
-    }
-    
-    path2.lineTo(size.width, size.height);
-    path2.lineTo(0, size.height);
-    path2.close();
-    
-    canvas.drawPath(path2, paint2);
   }
-  
+
   @override
-  bool shouldRepaint(WelcomeWavePainter oldDelegate) {
-    return oldDelegate.waveValue != waveValue;
-  }
+  bool shouldRepaint(_WelcomeWavePainter old) => old.wave != wave;
 }

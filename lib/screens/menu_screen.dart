@@ -1,3 +1,4 @@
+// lib/screens/menu_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'dart:math' as math;
@@ -15,441 +16,212 @@ class MenuScreen extends StatefulWidget {
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
-class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
+class _MenuScreenState extends State<MenuScreen>
+    with TickerProviderStateMixin {
   int _totalPoin = 0;
   int _levelTerbuka = 1;
-  
-  // Multiple Animation Controllers untuk efek yang lebih kaya
-  late AnimationController _waveController;
-  late AnimationController _rotateController;
-  late AnimationController _bounceController;
-  late AnimationController _pulseController;
-  late AnimationController _floatController;
-  late AnimationController _shakeController;
-  
-  late Animation<double> _waveAnimation;
-  late Animation<double> _rotateAnimation;
-  late Animation<double> _bounceAnimation;
-  late Animation<double> _pulseAnimation;
-  late Animation<double> _floatAnimation;
-  late Animation<double> _shakeAnimation;
+
+  late AnimationController _waveCtrl;
+  late AnimationController _pulseCtrl;
+  late AnimationController _floatCtrl;
+  late AnimationController _shimmerCtrl;
+
+  late Animation<double> _waveAnim;
+  late Animation<double> _pulseAnim;
+  late Animation<double> _floatAnim;
+  late Animation<double> _shimmerAnim;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    
-    // 1. Gelombang untuk background
-    _waveController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat();
-    _waveAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(_waveController);
-    
-    // 2. Rotasi untuk icon settings
-    _rotateController = AnimationController(
-      duration: const Duration(seconds: 4),
-      vsync: this,
-    )..repeat();
-    _rotateAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(_rotateController);
-    
-    // 3. Bounce untuk kartu
-    _bounceController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    )..repeat(reverse: true);
-    _bounceAnimation = Tween<double>(begin: 0, end: -12).animate(
-      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
-    );
-    
-    // 4. Pulse untuk avatar
-    _pulseController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
-      vsync: this,
-    )..repeat(reverse: true);
-    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-    
-    // 5. Float untuk kartu kedua
-    _floatController = AnimationController(
-      duration: const Duration(seconds: 2),
-      vsync: this,
-    )..repeat(reverse: true);
-    _floatAnimation = Tween<double>(begin: -5, end: 5).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-    
-    // 6. Shake untuk tombol
-    _shakeController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    )..repeat(reverse: true);
-    _shakeAnimation = Tween<double>(begin: -2, end: 2).animate(
-      CurvedAnimation(parent: _shakeController, curve: Curves.elasticInOut),
-    );
+
+    _waveCtrl = AnimationController(
+        duration: const Duration(seconds: 4), vsync: this)
+      ..repeat();
+    _waveAnim =
+        Tween<double>(begin: 0, end: 2 * math.pi).animate(_waveCtrl);
+
+    _pulseCtrl = AnimationController(
+        duration: const Duration(milliseconds: 1400), vsync: this)
+      ..repeat(reverse: true);
+    _pulseAnim = Tween<double>(begin: 1.0, end: 1.05).animate(
+        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+
+    _floatCtrl = AnimationController(
+        duration: const Duration(milliseconds: 2200), vsync: this)
+      ..repeat(reverse: true);
+    _floatAnim = Tween<double>(begin: -6, end: 6).animate(
+        CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
+
+    _shimmerCtrl = AnimationController(
+        duration: const Duration(milliseconds: 2000), vsync: this)
+      ..repeat();
+    _shimmerAnim =
+        Tween<double>(begin: -1, end: 2).animate(_shimmerCtrl);
   }
 
   @override
   void dispose() {
-    _waveController.dispose();
-    _rotateController.dispose();
-    _bounceController.dispose();
-    _pulseController.dispose();
-    _floatController.dispose();
-    _shakeController.dispose();
+    _waveCtrl.dispose();
+    _pulseCtrl.dispose();
+    _floatCtrl.dispose();
+    _shimmerCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _loadData() async {
     final poin = await StorageHelper().getTotalPoin();
     final level = await StorageHelper().getLevelTerbuka();
-    setState(() {
-      _totalPoin = poin;
-      _levelTerbuka = level;
-    });
+    if (mounted) {
+      setState(() {
+        _totalPoin = poin;
+        _levelTerbuka = level;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF667eea),
-              const Color(0xFF764ba2),
-              const Color(0xFFf093fb),
-              const Color(0xFFf5576c),
-            ],
-            stops: const [0.0, 0.3, 0.7, 1.0],
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          // Blue header background
+          Container(
+            height: size.height * 0.32,
+            decoration: const BoxDecoration(
+              gradient: AppColors.primaryGradient,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Animasi gelombang background
-              _buildWaveBackground(),
-              
-              // Bola-bola beranimasi
-              _buildFloatingBubbles(),
-              
-              // Konten utama
-              Column(
-                children: [
-                  // Header dengan animasi
-                  _buildAnimatedHeader(),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Quote dengan efek neon
-                  _buildNeonQuote(),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Grid Menu dengan animasi yang kelihatan
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 20,
-                        mainAxisSpacing: 20,
-                        childAspectRatio: 0.85,
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          _build3DMenuCard(
-                            icon: Icons.quiz,
-                            title: 'QUIZ',
-                            subtitle: 'Uji Pengetahuan',
-                            color1: const Color(0xFF4158D0),
-                            color2: const Color(0xFFC850C0),
-                            delay: 0,
-                            onTap: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const QuizLevelScreen()),
-                              );
-                              if (result == true) _loadData();
-                            },
-                          ),
-                          _build3DMenuCard(
-                            icon: Icons.gamepad,
-                            title: 'GAME',
-                            subtitle: 'Tebak Gambar',
-                            color1: const Color(0xFFF9D423),
-                            color2: const Color(0xFFFF4E50),
-                            delay: 150,
-                            onTap: () async {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const GameScreen()),
-                              );
-                              if (result == true) _loadData();
-                            },
-                          ),
-                          _build3DMenuCard(
-                            icon: Icons.person,
-                            title: 'PROFIL',
-                            subtitle: 'Lihat Progres',
-                            color1: const Color(0xFF00B4DB),
-                            color2: const Color(0xFF0083B0),
-                            delay: 300,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                              ).then((_) => _loadData());
-                            },
-                          ),
-                          _build3DMenuCard(
-                            icon: Icons.info,
-                            title: 'TENTANG',
-                            subtitle: 'Info Aplikasi',
-                            color1: const Color(0xFFF53844),
-                            color2: const Color(0xFF42378F),
-                            delay: 450,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const AboutScreen()),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                ],
+
+          // Wave on header
+          ClipRect(
+            child: SizedBox(
+              height: size.height * 0.32,
+              child: AnimatedBuilder(
+                animation: _waveAnim,
+                builder: (_, __) => CustomPaint(
+                  size: Size.infinite,
+                  painter: _MenuWavePainter(_waveAnim.value),
+                ),
               ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
-  }
 
-  // Background gelombang
-  Widget _buildWaveBackground() {
-    return AnimatedBuilder(
-      animation: _waveController,
-      builder: (context, child) {
-        return CustomPaint(
-          size: Size.infinite,
-          painter: WavePainter(waveValue: _waveAnimation.value),
-        );
-      },
-    );
-  }
+          SafeArea(
+            child: Column(
+              children: [
+                // Header
+                _buildHeader(),
 
-  // Bola-bola mengambang
-  Widget _buildFloatingBubbles() {
-    return Stack(
-      children: List.generate(15, (index) {
-        return Positioned(
-          left: (index * 73) % MediaQuery.of(context).size.width,
-          top: (index * 47) % MediaQuery.of(context).size.height,
-          child: TweenAnimationBuilder(
-            tween: Tween<double>(begin: 0, end: 2 * math.pi),
-            duration: Duration(seconds: 3 + index),
-            builder: (context, double value, child) {
-              return Transform.translate(
-                offset: Offset(math.sin(value) * 20, math.cos(value * 1.3) * 20),
-                child: Container(
-                  width: 30 + (index % 20),
-                  height: 30 + (index % 20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    shape: BoxShape.circle,
+                const SizedBox(height: 20),
+
+                // Poin card - floating
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildPoinCard(),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Section title
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Menu Utama',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
-        );
-      }),
-    );
-  }
 
-  // Header dengan animasi
-  Widget _buildAnimatedHeader() {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 800),
-      builder: (context, double opacity, child) {
-        return Opacity(
-          opacity: opacity,
-          child: Transform.translate(
-            offset: Offset(0, 50 * (1 - opacity)),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                children: [
-                  // Avatar berdenyut
-                  AnimatedBuilder(
-                    animation: _pulseAnimation,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _pulseAnimation.value,
-                        child: Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Colors.white, Colors.white70],
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.white.withOpacity(0.5),
-                                blurRadius: 20,
-                                spreadRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.person,
-                              size: 40,
-                              color: Color(0xFF667eea),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                const SizedBox(height: 16),
+
+                // 2x2 Menu Grid
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: GridView.count(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      childAspectRatio: 1.0,
+                      physics: const NeverScrollableScrollPhysics(),
                       children: [
-                        Text(
-                          'Halo, User! 👋',
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            color: Colors.white70,
-                          ),
+                        _buildMenuCard(
+                          index: 0,
+                          icon: Icons.quiz_rounded,
+                          title: 'QUIZ',
+                          subtitle: 'Uji Pengetahuan',
+                          color: AppColors.primary,
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const QuizLevelScreen()),
+                            );
+                            if (result == true) _loadData();
+                          },
                         ),
-                        Text(
-                          'Andomi Learner',
-                          style: GoogleFonts.poppins(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                        _buildMenuCard(
+                          index: 1,
+                          icon: Icons.extension_rounded,
+                          title: 'TEBAK\nGAMBAR',
+                          subtitle: 'Word Puzzle',
+                          color: const Color(0xFF0EA5E9),
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const GameScreen()),
+                            );
+                            if (result == true) _loadData();
+                          },
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            _buildGlassChip(
-                              icon: Icons.star,
-                              label: '$_totalPoin Poin',
-                              color: Colors.amber,
-                            ),
-                            const SizedBox(width: 10),
-                            _buildGlassChip(
-                              icon: Icons.verified,
-                              label: 'Level $_levelTerbuka',
-                              color: Colors.lightGreen,
-                            ),
-                          ],
+                        _buildMenuCard(
+                          index: 2,
+                          icon: Icons.person_rounded,
+                          title: 'PROFIL',
+                          subtitle: 'Lihat Progres',
+                          color: const Color(0xFF6366F1),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const ProfileScreen()),
+                            ).then((_) => _loadData());
+                          },
+                        ),
+                        _buildMenuCard(
+                          index: 3,
+                          icon: Icons.info_rounded,
+                          title: 'TENTANG',
+                          subtitle: 'Info Aplikasi',
+                          color: const Color(0xFF8B5CF6),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const AboutScreen()),
+                            );
+                          },
                         ),
                       ],
                     ),
                   ),
-                  // Settings berputar
-                  AnimatedBuilder(
-                    animation: _rotateAnimation,
-                    builder: (context, child) {
-                      return Transform.rotate(
-                        angle: _rotateAnimation.value,
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: const Icon(
-                            Icons.settings,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
+                ),
 
-  // Quote dengan efek neon
-  Widget _buildNeonQuote() {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 800),
-      builder: (context, double opacity, child) {
-        return Opacity(
-          opacity: opacity,
-          child: ShaderMask(
-            shaderCallback: (bounds) {
-              return LinearGradient(
-                colors: [Colors.white, Colors.yellow.shade300],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ).createShader(bounds);
-            },
-            child: Text(
-              '✨ Pelajari Anatomi dengan\nCara yang Menyenangkan! ✨',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                height: 1.3,
-                shadows: [
-                  Shadow(
-                    color: Colors.white.withOpacity(0.5),
-                    blurRadius: 10,
-                    offset: const Offset(0, 0),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Glassmorphism Chip
-  Widget _buildGlassChip({required IconData icon, required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-                          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+                const SizedBox(height: 16),
+              ],
             ),
           ),
         ],
@@ -457,135 +229,322 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
     );
   }
 
-  // 3D Menu Card dengan animasi bouncing dan floating
-  Widget _build3DMenuCard({
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Row(
+        children: [
+          // Avatar
+          AnimatedBuilder(
+            animation: _pulseCtrl,
+            builder: (_, __) => Transform.scale(
+              scale: _pulseAnim.value,
+              child: Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.3),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.person_rounded,
+                    color: AppColors.primary, size: 28),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          // Greeting
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Halo, User! 👋',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                Text(
+                  'Andomi Learner',
+                  style: GoogleFonts.poppins(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Level badge
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: Colors.white.withOpacity(0.3), width: 1),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.verified_rounded,
+                    color: Colors.white, size: 14),
+                const SizedBox(width: 4),
+                Text(
+                  'Lv $_levelTerbuka',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPoinCard() {
+    return AnimatedBuilder(
+      animation: _floatCtrl,
+      builder: (_, __) => Transform.translate(
+        offset: Offset(0, _floatAnim.value * 0.5),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withOpacity(0.15),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Poin
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.warningLight,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.stars_rounded,
+                          color: AppColors.warning, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Poin',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '$_totalPoin',
+                          style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.warning,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Divider
+              Container(
+                  width: 1,
+                  height: 40,
+                  color: AppColors.divider),
+              const SizedBox(width: 16),
+
+              // Level
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryPale,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.lock_open_rounded,
+                          color: AppColors.primary, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Level Terbuka',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          '$_levelTerbuka / 3',
+                          style: GoogleFonts.poppins(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuCard({
+    required int index,
     required IconData icon,
     required String title,
     required String subtitle,
-    required Color color1,
-    required Color color2,
-    required int delay,
+    required Color color,
     required VoidCallback onTap,
   }) {
-    return TweenAnimationBuilder(
-      tween: Tween<double>(begin: 0, end: 1),
-      duration: Duration(milliseconds: 500 + delay),
-      builder: (context, double opacity, child) {
-        return Opacity(
-          opacity: opacity,
-          child: Transform.scale(
-            scale: opacity,
-            child: GestureDetector(
-              onTap: onTap,
-              child: AnimatedBuilder(
-                animation: Listenable.merge([_bounceAnimation, _floatAnimation]),
-                builder: (context, child) {
-                  final double bounce = title == 'QUIZ' ? _bounceAnimation.value : 
-                                       (title == 'GAME' ? _floatAnimation.value : 0);
-                  
-                  return Transform.translate(
-                    offset: Offset(0, bounce),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [color1, color2],
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 400 + index * 120),
+      curve: Curves.easeOutBack,
+      builder: (_, val, __) {
+        return Transform.scale(
+          scale: val,
+          child: AnimatedBuilder(
+            animation: _floatCtrl,
+            builder: (_, __) {
+              final yOff = index % 2 == 0
+                  ? _floatAnim.value
+                  : -_floatAnim.value;
+              return Transform.translate(
+                offset: Offset(0, yOff * 0.6),
+                child: GestureDetector(
+                  onTap: onTap,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withOpacity(0.15),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
                         ),
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [
-                          BoxShadow(
-                            color: color1.withOpacity(0.6),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
+                      ],
+                      border: Border.all(
+                          color: color.withOpacity(0.12), width: 1.5),
+                    ),
+                    child: Stack(
+                      children: [
+                        // Background accent
+                        Positioned(
+                          right: -10,
+                          bottom: -10,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.06),
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: Stack(
-                        children: [
-                          // Efek glasir
-                          Positioned.fill(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(30),
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.white.withOpacity(0.3),
-                                    Colors.transparent,
-                                  ],
+                        ),
+
+                        // Content
+                        Padding(
+                          padding: const EdgeInsets.all(18),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: color.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(icon,
+                                    color: color, size: 26),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                title,
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.textPrimary,
+                                  height: 1.2,
                                 ),
                               ),
+                              const SizedBox(height: 4),
+                              Text(
+                                subtitle,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Arrow
+                        Positioned(
+                          top: 14,
+                          right: 14,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: color,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 14,
                             ),
                           ),
-                          // Konten
-                          Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                // Icon dengan animasi rotate
-                                AnimatedBuilder(
-                                  animation: _shakeController,
-                                  builder: (context, child) {
-                                    return Transform.rotate(
-                                      angle: title == 'QUIZ' ? _shakeAnimation.value * 0.05 : 0,
-                                      child: Container(
-                                        width: 80,
-                                        height: 80,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.25),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(0.5),
-                                            width: 2,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          icon,
-                                          size: 45,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 20),
-                                Text(
-                                  title,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    letterSpacing: 1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    subtitle,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
+                ),
+              );
+            },
           ),
         );
       },
@@ -593,52 +552,31 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   }
 }
 
-// Custom Painter untuk efek gelombang
-class WavePainter extends CustomPainter {
-  final double waveValue;
-  
-  WavePainter({required this.waveValue});
-  
+class _MenuWavePainter extends CustomPainter {
+  final double wave;
+  _MenuWavePainter(this.wave);
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = Colors.white.withOpacity(0.06)
       ..style = PaintingStyle.fill;
-    
-    final path = Path();
-    path.moveTo(0, size.height * 0.7);
-    
-    for (double i = 0; i <= size.width; i += 10) {
-      double y = size.height * 0.7 + math.sin((i * 0.02) + waveValue) * 15;
-      path.lineTo(i, y);
+
+    for (int i = 0; i < 2; i++) {
+      final path = Path();
+      final yBase = size.height * (0.65 + i * 0.15);
+      path.moveTo(0, yBase);
+      for (double x = 0; x <= size.width; x += 8) {
+        path.lineTo(x,
+            yBase + math.sin((x * 0.018) + wave + i) * (16 + i * 8));
+      }
+      path.lineTo(size.width, size.height);
+      path.lineTo(0, size.height);
+      path.close();
+      canvas.drawPath(path, paint);
     }
-    
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-    
-    canvas.drawPath(path, paint);
-    
-    // Gelombang kedua
-    final paint2 = Paint()
-      ..color = Colors.white.withOpacity(0.08)
-      ..style = PaintingStyle.fill;
-    
-    final path2 = Path();
-    path2.moveTo(0, size.height * 0.75);
-    
-    for (double i = 0; i <= size.width; i += 10) {
-      double y = size.height * 0.75 + math.cos((i * 0.025) + waveValue * 1.5) * 20;
-      path2.lineTo(i, y);
-    }
-    
-    path2.lineTo(size.width, size.height);
-    path2.lineTo(0, size.height);
-    path2.close();
-    
-    canvas.drawPath(path2, paint2);
   }
-  
+
   @override
-  bool shouldRepaint(WavePainter oldDelegate) => oldDelegate.waveValue != waveValue;
+  bool shouldRepaint(_MenuWavePainter old) => old.wave != wave;
 }
