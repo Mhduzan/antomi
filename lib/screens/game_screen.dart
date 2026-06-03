@@ -1,8 +1,12 @@
+// lib/screens/game_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/colors.dart';
 import '../utils/storage_helper.dart';
 import '../data/game_data.dart';
+import '../models/game_puzzle.dart';
+import 'word_puzzle_screen.dart';
+import 'matching_puzzle_screen.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -11,508 +15,348 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
-  int _currentIndex = 0;
-  int _score = 0;
-  int _poinGame = 0;
-  List<String> _selectedLetters = [];
-  List<String> _availableLetters = [];
-  List<String> _usedLetters = [];
-  String _currentAnswer = '';
-  bool _isAnswered = false;
-  String? _feedbackMessage;
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+  late final List<GameStage> _stages;
+  int _currentStage = 0;
+  int _totalScore = 0;   // jumlah jawaban benar
+  int _totalPoin = 0;    // poin yang dikumpulkan
+  bool _gameFinished = false;
+
+  late AnimationController _fadeCtrl;
+  late Animation<double> _fadeAnim;
 
   @override
   void initState() {
     super.initState();
-    _resetPuzzle();
+    _stages = buildGameStages();
+
+    _fadeCtrl = AnimationController(
+        duration: const Duration(milliseconds: 400), vsync: this);
+    _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeInOut);
+    _fadeCtrl.forward();
   }
 
-  void _resetPuzzle() {
-    final puzzle = gamePuzzles[_currentIndex];
-    _selectedLetters = [];
-    _usedLetters = [];
-    _availableLetters = List.from(puzzle.availableLetters);
-    _currentAnswer = '';
-    _isAnswered = false;
-    _feedbackMessage = null;
-    _updateCurrentAnswer();
+  @override
+  void dispose() {
+    _fadeCtrl.dispose();
+    super.dispose();
   }
 
-  void _selectLetter(String letter) {
-    if (_isAnswered) return;
-    if (_selectedLetters.contains(letter)) return;
-
+  void _onStageComplete({required int poin, required int correct}) {
     setState(() {
-      _selectedLetters.add(letter);
-      _availableLetters.remove(letter);
-      _usedLetters.add(letter);
-      _updateCurrentAnswer();
+      _totalPoin += poin;
+      _totalScore += correct;
     });
-  }
 
-  void _returnLetter(String letter) {
-    if (_isAnswered) return;
-    if (!_selectedLetters.contains(letter)) return;
-
-    setState(() {
-      _selectedLetters.remove(letter);
-      _availableLetters.add(letter);
-      _usedLetters.remove(letter);
-      _updateCurrentAnswer();
-    });
-  }
-
-  void _updateCurrentAnswer() {
-    final puzzle = gamePuzzles[_currentIndex];
-    String answer = '';
-    for (int i = 0; i < puzzle.correctWord.length; i++) {
-      String char = puzzle.correctWord[i];
-      if (_selectedLetters.contains(char)) {
-        answer += char;
-      } else {
-        answer += '_';
-      }
+    if (_currentStage + 1 < _stages.length) {
+      _fadeCtrl.reverse().then((_) {
+        setState(() => _currentStage++);
+        _fadeCtrl.forward();
+      });
+    } else {
+      _finishGame();
     }
-    _currentAnswer = answer;
   }
 
-  void _checkAnswer() async {
-    if (_isAnswered) return;
-
-    bool isCorrect = _currentAnswer == gamePuzzles[_currentIndex].correctWord;
-
-    setState(() {
-      _isAnswered = true;
-      if (isCorrect) {
-        _score++;
-        _poinGame += 10;
-        _feedbackMessage = '✓ Benar! +10 poin';
-      } else {
-        _feedbackMessage = '✗ Salah! Jawaban: ${gamePuzzles[_currentIndex].correctWord}';
-      }
-    });
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (_currentIndex + 1 < gamePuzzles.length) {
-        setState(() {
-          _currentIndex++;
-          _resetPuzzle();
-        });
-      } else {
-        _selesaiGame();
-      }
-    });
-  }
-
-  Future<void> _selesaiGame() async {
+  Future<void> _finishGame() async {
     final storage = StorageHelper();
-    int totalPoin = await storage.getTotalPoin();
-    await storage.saveTotalPoin(totalPoin + _poinGame);
-
-    if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Game Selesai!'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.emoji_events, size: 50, color: AppColors.warning),
-              const SizedBox(height: 12),
-              Text(
-                'Skor: $_score / ${gamePuzzles.length}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '+$_poinGame Poin',
-                style: const TextStyle(color: AppColors.warning, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context, true);
-              },
-              child: const Text('Kembali ke Menu'),
-            ),
-          ],
-        ),
-      );
-    }
+    final existing = await storage.getTotalPoin();
+    await storage.saveTotalPoin(existing + _totalPoin);
+    if (mounted) setState(() => _gameFinished = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    final puzzle = gamePuzzles[_currentIndex];
-    final progress = (_currentIndex + 1) / gamePuzzles.length;
+    if (_gameFinished) return _buildResultScreen();
+
+    final stage = _stages[_currentStage];
+    final totalStages = _stages.length;
+    final wordCount = wordPuzzles.length;
+    final matchCount = matchingPuzzles.length;
+
+    // Tentukan label tipe stage
+    String stageLabel;
+    int stageTypeIndex;
+    if (stage.type == PuzzleType.wordGuess) {
+      stageTypeIndex = _currentStage + 1;
+      stageLabel = 'Tebak Gambar $stageTypeIndex/$wordCount';
+    } else {
+      stageTypeIndex = _currentStage - wordCount + 1;
+      stageLabel = 'Puzzle Matching $stageTypeIndex/$matchCount';
+    }
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(
-          'Tebak Gambar',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Progress Bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              color: Colors.white,
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Soal ${_currentIndex + 1}/${gamePuzzles.length}',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, size: 14, color: AppColors.warning),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$_poinGame Poin',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.warning,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      backgroundColor: Colors.grey.shade200,
-                      color: AppColors.success,
-                      minHeight: 6,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          // ── Header global ──────────────────────────────────
+          _buildHeader(stageLabel, totalStages),
 
-            // GAMBAR UTAMA
-            Container(
-              margin: const EdgeInsets.all(20),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade200,
-                    blurRadius: 16,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
+          // ── Konten stage (fade transition) ─────────────────
+          Expanded(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              // ValueKey(stage+index) memaksa Flutter DESTROY & REBUILD
+              // widget dari nol setiap ganti soal → tidak ada state sisa
+              child: stage.type == PuzzleType.wordGuess
+                  ? WordPuzzleScreen(
+                      key: ValueKey('word_$_currentStage'),
+                      puzzle: stage.wordPuzzle!,
+                      stageNumber: _currentStage + 1,
+                      onComplete: _onStageComplete,
+                    )
+                  : MatchingPuzzleScreen(
+                      key: ValueKey('match_$_currentStage'),
+                      puzzle: stage.matchingPuzzle!,
+                      stageNumber: _currentStage + 1,
+                      onComplete: _onStageComplete,
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(String stageLabel, int totalStages) {
+    final progress = (_currentStage + 1) / totalStages;
+    return Container(
+      decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: Image.asset(
-                      puzzle.imageAsset,
-                      height: 160,
-                      width: double.infinity,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Column(
-                          children: [
-                            Icon(Icons.image_not_supported, size: 60, color: AppColors.primary),
-                            const SizedBox(height: 8),
-                            Text(
-                              puzzle.imageHint,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.arrow_back_ios_rounded,
+                          color: Colors.white, size: 16),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Gambar di atas adalah?',
-                    style: GoogleFonts.poppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        stageLabel,
+                        style: GoogleFonts.poppins(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  // Poin badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
-                      'Petunjuk: ${puzzle.clue}',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // BAGIAN PUZZLE KATA
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.shade100,
-                    blurRadius: 20,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Jawaban sementara
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: AppColors.primary.withOpacity(0.2),
-                      ),
-                    ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const Icon(Icons.stars_rounded,
+                            color: AppColors.warning, size: 14),
+                        const SizedBox(width: 4),
                         Text(
-                          'Jawaban: ',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                        Flexible(
-                          child: Text(
-                            _currentAnswer.isEmpty ? '_____' : _currentAnswer,
-                            style: GoogleFonts.poppins(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 3,
-                              color: AppColors.primary,
-                            ),
-                            textAlign: TextAlign.center,
+                          '$_totalPoin',
+                          style: GoogleFonts.poppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Huruf yang sudah dipilih
-                  if (_selectedLetters.isNotEmpty) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Huruf Terpilih (klik untuk batal):',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: Colors.grey.shade500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: _selectedLetters.map((letter) {
-                              return GestureDetector(
-                                onTap: () => _returnLetter(letter),
-                                child: Container(
-                                  width: 45,
-                                  height: 45,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.warning,
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: AppColors.warning.withOpacity(0.3),
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      letter,
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Huruf yang tersedia
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    alignment: WrapAlignment.center,
-                    children: _availableLetters.map((letter) {
-                      return GestureDetector(
-                        onTap: _isAnswered ? null : () => _selectLetter(letter),
-                        child: Container(
-                          width: 45,
-                          height: 45,
-                          decoration: BoxDecoration(
-                            gradient: _isAnswered
-                                ? null
-                                : const LinearGradient(
-                                    colors: [AppColors.primary, AppColors.primaryDark],
-                                  ),
-                            color: _isAnswered ? Colors.grey.shade300 : null,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: _isAnswered
-                                ? []
-                                : [
-                                    BoxShadow(
-                                      color: AppColors.primary.withOpacity(0.3),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              letter,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: _isAnswered ? Colors.grey.shade600 : Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Tombol Cek Jawaban
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isAnswered || _currentAnswer.contains('_') ? null : _checkAnswer,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: Text(
-                        _isAnswered ? 'Memeriksa...' : 'Cek Jawaban',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  if (_feedbackMessage != null) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _feedbackMessage!.contains('Benar')
-                            ? AppColors.success.withOpacity(0.1)
-                            : AppColors.danger.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _feedbackMessage!.contains('Benar') ? Icons.check_circle : Icons.cancel,
-                            size: 20,
-                            color: _feedbackMessage!.contains('Benar') ? AppColors.success : AppColors.danger,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _feedbackMessage!,
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: _feedbackMessage!.contains('Benar') ? AppColors.success : AppColors.danger,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  
-                  const SizedBox(height: 20),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: Colors.white.withOpacity(0.25),
+                  color: Colors.white,
+                  minHeight: 6,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Stage ${_currentStage + 1} dari $totalStages',
+                    style: GoogleFonts.inter(
+                        fontSize: 11, color: Colors.white.withOpacity(0.8)),
+                  ),
+                  Text(
+                    'Benar: $_totalScore',
+                    style: GoogleFonts.inter(
+                        fontSize: 11, color: Colors.white.withOpacity(0.8)),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildResultScreen() {
+    final totalStages = _stages.length;
+    final pct = (_totalScore / totalStages * 100).toInt();
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Trophy
+              Container(
+                width: 100,
+                height: 100,
+                decoration: const BoxDecoration(
+                  color: AppColors.warningLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.emoji_events_rounded,
+                    size: 56, color: AppColors.warning),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Game Selesai!',
+                style: GoogleFonts.poppins(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$_totalScore / $totalStages Benar',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Stat cards
+              Row(
+                children: [
+                  Expanded(
+                    child: _statCard(
+                        '$_totalPoin', 'Total Poin', AppColors.warning),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _statCard('$pct%', 'Akurasi', AppColors.primary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _statCard('$totalStages', 'Stage', AppColors.success),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // Kembali ke menu
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context, true),
+                  icon: const Icon(Icons.home_rounded),
+                  label: const Text('Kembali ke Menu'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _currentStage = 0;
+                      _totalScore = 0;
+                      _totalPoin = 0;
+                      _gameFinished = false;
+                    });
+                    _fadeCtrl.forward(from: 0);
+                  },
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Main Lagi'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    textStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statCard(String value, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
       ),
     );
   }

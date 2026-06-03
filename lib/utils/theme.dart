@@ -1,36 +1,71 @@
+// lib/utils/theme.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'colors.dart';
 
 class AppTheme {
-  static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF1E88E5), Color(0xFF6A1B9A), Color(0xFF0D47A1)],
-  );
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        brightness: Brightness.light,
+      ),
+      scaffoldBackgroundColor: AppColors.background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        titleTextStyle: GoogleFonts.poppins(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      cardTheme: CardTheme(
+        color: AppColors.cardBg,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: AppColors.divider, width: 1),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 15,
+          ),
+        ),
+      ),
+      fontFamily: GoogleFonts.poppins().fontFamily,
+    );
+  }
 
-  static const LinearGradient quizGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF1E88E5), Color(0xFF2196F3)],
-  );
-
-  static const LinearGradient gameGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF4CAF50), Color(0xFF009688)],
-  );
-
-  static const LinearGradient aboutGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF9C27B0), Color(0xFFE91E63)],
-  );
-
-  static List<BoxShadow> softShadow = [
-    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
+  // Shadows
+  static List<BoxShadow> get cardShadow => [
+    BoxShadow(
+      color: AppColors.primary.withOpacity(0.08),
+      blurRadius: 20,
+      offset: const Offset(0, 4),
+      spreadRadius: 0,
+    ),
   ];
 
-  static TextStyle heading1 = GoogleFonts.poppins(fontSize: 32, fontWeight: FontWeight.bold);
-  static TextStyle heading2 = GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold);
-  static TextStyle bodyText = GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade600);
+  static List<BoxShadow> get primaryShadow => [
+    BoxShadow(
+      color: AppColors.primary.withOpacity(0.3),
+      blurRadius: 16,
+      offset: const Offset(0, 8),
+      spreadRadius: 0,
+    ),
+  ];
 }
