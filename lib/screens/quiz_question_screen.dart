@@ -1,52 +1,59 @@
 // lib/screens/quiz_question_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'dart:math';
 import '../data/quiz_data.dart';
 import '../models/quiz_question.dart';
 import '../utils/storage_helper.dart';
 import '../utils/colors.dart';
+import '../utils/responsive.dart';
 import 'quiz_result_screen.dart';
 
 class QuizQuestionScreen extends StatefulWidget {
   final int level;
   const QuizQuestionScreen({required this.level, super.key});
-
   @override
   State<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
 }
 
 class _QuizQuestionScreenState extends State<QuizQuestionScreen>
     with TickerProviderStateMixin {
+  late R _r;
   late List<QuizQuestion> _questions;
   int _currentIndex = 0;
   int _score = 0;
   int _poinDariQuiz = 0;
   late StorageHelper _storage;
   bool _isAnswered = false;
-  String? _selectedAnswer;
+  int? _selectedIndex;       // index di _shuffledOptions yang dipilih
   bool _showExplanation = false;
 
-  late AnimationController _bounceCtrl;
+  // Shuffle per soal
+  late List<String> _shuffledOptions;  // opsi yang sudah diacak
+  late int _correctShuffledIndex;      // index jawaban benar di list yang diacak
+
   late AnimationController _progressCtrl;
-  late Animation<double> _bounceAnim;
-  late Animation<double> _progressAnim;
 
   @override
   void initState() {
     super.initState();
     _storage = StorageHelper();
     _questions = quizData[widget.level] ?? [];
-
-    _bounceCtrl = AnimationController(
-        duration: const Duration(milliseconds: 600), vsync: this);
-    _bounceAnim = CurvedAnimation(
-        parent: _bounceCtrl, curve: Curves.elasticOut);
-
-    _progressCtrl = AnimationController(
-        duration: const Duration(milliseconds: 500), vsync: this);
-    _progressAnim =
-        CurvedAnimation(parent: _progressCtrl, curve: Curves.easeOut);
+    _progressCtrl = AnimationController(duration: const Duration(milliseconds: 500), vsync: this);
+    _prepareCurrentQuestion();
     _updateProgress();
+  }
+
+  /// Acak pilihan jawaban untuk soal saat ini
+  void _prepareCurrentQuestion() {
+    if (_questions.isEmpty) return;
+    final soal = _questions[_currentIndex];
+    final correct = soal.options[soal.correctAnswerIndex];
+
+    // Buat list dengan index asli lalu shuffle
+    final indexed = soal.options.asMap().entries.toList()..shuffle(Random());
+    _shuffledOptions = indexed.map((e) => e.value).toList();
+    _correctShuffledIndex = _shuffledOptions.indexOf(correct);
   }
 
   void _updateProgress() {
@@ -55,25 +62,17 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
   }
 
   @override
-  void dispose() {
-    _bounceCtrl.dispose();
-    _progressCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _progressCtrl.dispose(); super.dispose(); }
 
-  void _answerQuestion(int selectedIndex) async {
+  void _answerQuestion(int shuffledIndex) async {
     if (_isAnswered) return;
-
     setState(() {
       _isAnswered = true;
-      _selectedAnswer = String.fromCharCode(65 + selectedIndex);
+      _selectedIndex = shuffledIndex;
       _showExplanation = true;
     });
 
-    final isCorrect =
-        selectedIndex == _questions[_currentIndex].correctAnswerIndex;
-
-    _bounceCtrl.forward(from: 0);
+    final isCorrect = shuffledIndex == _correctShuffledIndex;
 
     showDialog(
       context: context,
@@ -81,77 +80,45 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
       barrierColor: Colors.black.withOpacity(0.5),
       builder: (_) => _FeedbackDialog(
         isCorrect: isCorrect,
-        correctAnswer: _questions[_currentIndex]
-            .options[_questions[_currentIndex].correctAnswerIndex],
-        onNext: () {
-          Navigator.pop(context);
-          _lanjutKeSoalBerikutnya(isCorrect);
-        },
+        correctAnswer: _shuffledOptions[_correctShuffledIndex],
+        onNext: () { Navigator.pop(context); _lanjutKeSoalBerikutnya(isCorrect); },
       ),
     );
 
-    if (isCorrect) {
-      setState(() {
-        _score++;
-        _poinDariQuiz += 10;
-      });
-    }
+    if (isCorrect) setState(() { _score++; _poinDariQuiz += 10; });
   }
 
   void _lanjutKeSoalBerikutnya(bool isCorrect) async {
-    setState(() {
-      _showExplanation = false;
-      _selectedAnswer = null;
-    });
+    setState(() { _showExplanation = false; _selectedIndex = null; });
 
     if (_currentIndex + 1 < _questions.length) {
-      setState(() {
-        _currentIndex++;
-        _isAnswered = false;
-      });
+      setState(() { _currentIndex++; _isAnswered = false; });
+      _prepareCurrentQuestion();
       _updateProgress();
     } else {
-      int totalPoinSekarang = await _storage.getTotalPoin();
-      int poinBaru = totalPoinSekarang + _poinDariQuiz;
+      int totalPoin = await _storage.getTotalPoin();
+      int poinBaru = totalPoin + _poinDariQuiz;
       await _storage.saveTotalPoin(poinBaru);
-
       int levelTerbuka = await _storage.getLevelTerbuka();
-
-      if (widget.level == 1 && poinBaru >= 50 && levelTerbuka < 2) {
-        await _storage.saveLevelTerbuka(2);
-      } else if (widget.level == 2 && poinBaru >= 120 && levelTerbuka < 3) {
-        await _storage.saveLevelTerbuka(3);
-      }
-
+      if (widget.level == 1 && poinBaru >= 50 && levelTerbuka < 2) await _storage.saveLevelTerbuka(2);
+      else if (widget.level == 2 && poinBaru >= 120 && levelTerbuka < 3) await _storage.saveLevelTerbuka(3);
       await _storage.saveSkorLevel(widget.level, _score);
-
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => QuizResultScreen(
-              level: widget.level,
-              score: _score,
-              totalQuestions: _questions.length,
-              poinDidapat: _poinDariQuiz,
-            ),
-          ),
-        );
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => QuizResultScreen(
+          level: widget.level, score: _score,
+          totalQuestions: _questions.length, poinDidapat: _poinDariQuiz,
+        )));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    _r = R.of(context);
     if (_questions.isEmpty) {
       return Scaffold(
-        backgroundColor: AppColors.background,
-        appBar: AppBar(
-          title: Text('Quiz Level ${widget.level}',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w700)),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-        ),
+        appBar: AppBar(title: Text('Quiz Level ${widget.level}'),
+          backgroundColor: AppColors.primary, foregroundColor: Colors.white),
         body: const Center(child: Text('Soal tidak tersedia')),
       );
     }
@@ -162,37 +129,22 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // Header with progress
           _buildHeader(),
-
-          // Content
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              padding: EdgeInsets.fromLTRB(_r.pad, _r.padSm, _r.pad, _r.pad + 8),
               child: Column(
                 children: [
-                  const SizedBox(height: 16),
+                  // Pertanyaan + gambar dalam 1 card
+                  _buildQuestionWithImage(soal.question, soal.imageAsset),
+                  SizedBox(height: _r.h(14)),
 
-                  // Gambar soal
-                  if (soal.imageAsset.isNotEmpty)
-                    _buildImageCard(soal.imageAsset),
+                  // Opsi jawaban A-D (dari shuffledOptions)
+                  ...List.generate(_shuffledOptions.length, (i) => _buildOption(i)),
 
-                  const SizedBox(height: 16),
-
-                  // Pertanyaan
-                  _buildQuestionCard(soal.question),
-
-                  const SizedBox(height: 16),
-
-                  // Opsi jawaban
-                  ...List.generate(soal.options.length, (i) {
-                    return _buildOptionButton(soal, i);
-                  }),
-
-                  // Tip edukatif
                   if (_showExplanation) ...[
-                    const SizedBox(height: 12),
-                    _buildTipCard(soal.question, _selectedAnswer ?? ''),
+                    SizedBox(height: _r.h(10)),
+                    _buildTipCard(soal.question),
                   ],
                 ],
               ),
@@ -205,119 +157,67 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
 
   Widget _buildHeader() {
     final progress = (_currentIndex + 1) / _questions.length;
-
     return Container(
       decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          padding: EdgeInsets.fromLTRB(_r.pad, _r.padXs, _r.pad, _r.pad),
           child: Column(
             children: [
-              // Top row
               Row(
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
                     child: Container(
-                      width: 36,
-                      height: 36,
+                      width: _r.w(36), height: _r.w(36),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(_r.padSm),
                       ),
-                      child: const Icon(Icons.arrow_back_ios_rounded,
-                          color: Colors.white, size: 16),
+                      child: Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: _r.iconSm),
                     ),
                   ),
-                  Expanded(
-                    child: Center(
-                      child: Text(
-                        'Quiz Level ${widget.level}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
+                  Expanded(child: Center(child: Text('Quiz Level ${widget.level}',
+                    style: GoogleFonts.poppins(fontSize: _r.sp(16), fontWeight: FontWeight.w700, color: Colors.white)))),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.stars_rounded,
-                            color: AppColors.warning, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$_poinDariQuiz',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ],
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: _r.padSm + 2, vertical: _r.padXs),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+                    child: Row(children: [
+                      Icon(Icons.stars_rounded, color: AppColors.warning, size: _r.iconSm - 2),
+                      SizedBox(width: _r.w(4)),
+                      Text('$_poinDariQuiz',
+                        style: GoogleFonts.poppins(fontSize: _r.sp(12), fontWeight: FontWeight.w700, color: AppColors.primary)),
+                    ]),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 14),
-
-              // Progress
+              SizedBox(height: _r.h(10)),
               Row(
                 children: [
                   Expanded(
-                    child: AnimatedBuilder(
-                      animation: _progressAnim,
-                      builder: (_, __) => ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: progress,
-                          backgroundColor: Colors.white.withOpacity(0.25),
-                          color: Colors.white,
-                          minHeight: 7,
-                        ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.white.withOpacity(0.25),
+                        color: Colors.white,
+                        minHeight: _r.h(6),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '${_currentIndex + 1}/${_questions.length}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                  SizedBox(width: _r.w(10)),
+                  Text('${_currentIndex + 1}/${_questions.length}',
+                    style: GoogleFonts.poppins(fontSize: _r.sp(12), fontWeight: FontWeight.w600, color: Colors.white)),
                 ],
               ),
-
-              const SizedBox(height: 8),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Soal ${_currentIndex + 1} dari ${_questions.length}',
-                    style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: Colors.white.withOpacity(0.75)),
-                  ),
-                  Text(
-                    'Skor: $_score/${_questions.length}',
-                    style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: Colors.white.withOpacity(0.75)),
-                  ),
-                ],
-              ),
+              SizedBox(height: _r.h(4)),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text('Soal ${_currentIndex + 1} dari ${_questions.length}',
+                  style: GoogleFonts.inter(fontSize: _r.sp(10), color: Colors.white.withOpacity(0.75))),
+                Text('Skor: $_score/${_questions.length}',
+                  style: GoogleFonts.inter(fontSize: _r.sp(10), color: Colors.white.withOpacity(0.75))),
+              ]),
             ],
           ),
         ),
@@ -325,211 +225,122 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
     );
   }
 
-  Widget _buildImageCard(String imageAsset) {
+  // Pertanyaan di atas, gambar di bawah (sesuai bunyi soal "gambar di bawah ini")
+  Widget _buildQuestionWithImage(String question, String imageAsset) {
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(_r.radiusLg),
+        boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(_r.radiusLg),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: AppColors.primaryPale,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.image_rounded,
-                      size: 14, color: AppColors.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Ilustrasi Anatomi',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
+            // Teks pertanyaan
+            Padding(
+              padding: EdgeInsets.fromLTRB(_r.pad - 2, _r.pad - 2, _r.pad - 2, _r.padSm),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Container(
+                    padding: EdgeInsets.all(_r.padXs + 2),
+                    decoration: BoxDecoration(color: AppColors.primaryPale, borderRadius: BorderRadius.circular(_r.padXs + 2)),
+                    child: Icon(Icons.help_rounded, color: AppColors.primary, size: _r.iconSm),
                   ),
-                ],
-              ),
+                  SizedBox(width: _r.w(8)),
+                  Text('Pertanyaan',
+                    style: GoogleFonts.inter(fontSize: _r.sp(11), fontWeight: FontWeight.w600, color: AppColors.primary)),
+                ]),
+                SizedBox(height: _r.h(8)),
+                Text(question,
+                  style: GoogleFonts.poppins(
+                    fontSize: _r.sp(14), fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary, height: 1.5)),
+              ]),
             ),
-            Image.asset(
-              imageAsset,
-              height: 170,
-              width: double.infinity,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Container(
-                height: 170,
-                color: AppColors.inputBg,
-                child: const Center(
-                  child: Icon(Icons.image_not_supported_rounded,
-                      size: 48, color: AppColors.textLight),
+
+            // Gambar di bawah pertanyaan
+            if (imageAsset.isNotEmpty) ...[
+              Container(
+                width: double.infinity, color: AppColors.primaryPale,
+                padding: EdgeInsets.symmetric(vertical: _r.padXs),
+                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Icon(Icons.image_rounded, size: _r.iconSm - 2, color: AppColors.primary),
+                  SizedBox(width: _r.w(4)),
+                  Text('Ilustrasi Anatomi',
+                    style: GoogleFonts.inter(fontSize: _r.sp(10), fontWeight: FontWeight.w600, color: AppColors.primary)),
+                ]),
+              ),
+              Image.asset(
+                imageAsset,
+                height: _r.imgH,
+                width: double.infinity,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  height: _r.imgH, color: AppColors.inputBg,
+                  child: Center(child: Icon(Icons.image_not_supported_rounded,
+                    size: _r.iconLg, color: AppColors.textLight)),
                 ),
               ),
-            ),
+            ],
+            SizedBox(height: _r.h(6)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildQuestionCard(String question) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryPale,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.help_rounded,
-                    color: AppColors.primary, size: 16),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Pertanyaan',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            question,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOptionButton(QuizQuestion soal, int index) {
-    final isSelected =
-        _selectedAnswer == String.fromCharCode(65 + index);
-    final isCorrect = index == soal.correctAnswerIndex;
+  Widget _buildOption(int shuffledIndex) {
+    final isSelected = _selectedIndex == shuffledIndex;
+    final isCorrect  = shuffledIndex == _correctShuffledIndex;
+    final label      = String.fromCharCode(65 + shuffledIndex); // A, B, C, D
 
     Color borderColor = AppColors.divider;
-    Color bgColor = Colors.white;
-    Color labelBg = AppColors.primary;
-    Color textColor = AppColors.textPrimary;
+    Color bgColor     = Colors.white;
+    Color labelBg     = AppColors.primary;
 
     if (_isAnswered) {
-      if (isSelected && isCorrect) {
-        borderColor = AppColors.success;
-        bgColor = AppColors.successLight;
-        labelBg = AppColors.success;
-        textColor = AppColors.textPrimary;
-      } else if (isSelected && !isCorrect) {
-        borderColor = AppColors.danger;
-        bgColor = AppColors.dangerLight;
-        labelBg = AppColors.danger;
-        textColor = AppColors.textPrimary;
-      } else if (!isSelected && isCorrect) {
-        borderColor = AppColors.success.withOpacity(0.5);
-        bgColor = AppColors.successLight.withOpacity(0.4);
-        labelBg = AppColors.success.withOpacity(0.6);
-      }
+      if (isSelected && isCorrect)  { borderColor = AppColors.success; bgColor = AppColors.successLight; labelBg = AppColors.success; }
+      else if (isSelected && !isCorrect) { borderColor = AppColors.danger; bgColor = AppColors.dangerLight; labelBg = AppColors.danger; }
+      else if (!isSelected && isCorrect) { borderColor = AppColors.success.withOpacity(0.5); bgColor = AppColors.successLight.withOpacity(0.4); labelBg = AppColors.success.withOpacity(0.6); }
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: EdgeInsets.only(bottom: _r.h(10)),
       child: GestureDetector(
-        onTap: _isAnswered ? null : () => _answerQuestion(index),
+        onTap: _isAnswered ? null : () => _answerQuestion(shuffledIndex),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: EdgeInsets.symmetric(horizontal: _r.padSm + 2, vertical: _r.padSm + 2),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(_r.radius),
             border: Border.all(color: borderColor, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: Row(
             children: [
               // Label huruf
               Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: labelBg,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text(
-                    String.fromCharCode(65 + index),
-                    style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
+                width: _r.w(34), height: _r.w(34),
+                decoration: BoxDecoration(color: labelBg, borderRadius: BorderRadius.circular(_r.padSm)),
+                child: Center(child: Text(label,
+                  style: GoogleFonts.poppins(fontSize: _r.sp(14), fontWeight: FontWeight.w700, color: Colors.white))),
               ),
-
-              const SizedBox(width: 14),
-
-              Expanded(
-                child: Text(
-                  soal.options[index],
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: _isAnswered && isSelected
-                        ? FontWeight.w600
-                        : FontWeight.normal,
-                    color: textColor,
-                  ),
-                ),
-              ),
-
+              SizedBox(width: _r.w(12)),
+              Expanded(child: Text(_shuffledOptions[shuffledIndex],
+                style: GoogleFonts.inter(
+                  fontSize: _r.sp(13),
+                  fontWeight: _isAnswered && isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: AppColors.textPrimary))),
               if (_isAnswered && isSelected)
-                Icon(
-                  isCorrect
-                      ? Icons.check_circle_rounded
-                      : Icons.cancel_rounded,
+                Icon(isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
                   color: isCorrect ? AppColors.success : AppColors.danger,
-                  size: 22,
-                ),
+                  size: _r.iconMd),
+              if (_isAnswered && !isSelected && isCorrect)
+                Icon(Icons.check_circle_outlined, color: AppColors.success, size: _r.iconMd),
             ],
           ),
         ),
@@ -537,243 +348,130 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
     );
   }
 
-  Widget _buildTipCard(String question, String selectedAnswer) {
+  Widget _buildTipCard(String question) {
+    String tip = '📖 Terus belajar! Memahami anatomi tubuh sangat penting untuk kesehatan.';
+    if (question.toLowerCase().contains('squat') || question.toLowerCase().contains('quadriceps')) {
+      tip = '✨ Otot quadriceps adalah kelompok otot terkuat di tubuh manusia!';
+    } else if (question.toLowerCase().contains('push') || question.toLowerCase().contains('pectoralis')) {
+      tip = '✨ Push-up melatih dada, core, trisep, dan bahu sekaligus!';
+    } else if (question.toLowerCase().contains('tulang')) {
+      tip = '📚 Manusia dewasa punya 206 tulang, bayi punya sekitar 270 tulang!';
+    } else if (question.toLowerCase().contains('sendi')) {
+      tip = '🦴 Sendi adalah penghubung antar tulang yang memungkinkan gerakan tubuh!';
+    } else if (question.toLowerCase().contains('otot')) {
+      tip = '💪 Tubuh manusia memiliki lebih dari 600 otot yang bekerja bersama!';
+    }
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(_r.padSm + 2),
       decoration: BoxDecoration(
         color: AppColors.primaryPale,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: AppColors.primary.withOpacity(0.2), width: 1),
+        borderRadius: BorderRadius.circular(_r.radius),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.lightbulb_rounded,
-              color: AppColors.primary, size: 18),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '💡 Materi Edukatif',
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    color: AppColors.primaryDark,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _getEdukasiTip(question, selectedAnswer),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.textPrimary,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(Icons.lightbulb_rounded, color: AppColors.primary, size: _r.iconSm),
+        SizedBox(width: _r.w(8)),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('💡 Tahukah kamu?',
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: _r.sp(12), color: AppColors.primaryDark)),
+          SizedBox(height: _r.h(4)),
+          Text(tip, style: GoogleFonts.inter(fontSize: _r.sp(11), color: AppColors.textPrimary, height: 1.4)),
+        ])),
+      ]),
     );
-  }
-
-  String _getEdukasiTip(String question, String selectedAnswer) {
-    if (question.contains('squat') || question.contains('Quadriceps')) {
-      return '✨ Fakta Menarik: Otot quadriceps adalah kelompok otot terkuat di tubuh manusia!';
-    } else if (question.contains('push-up') ||
-        question.contains('Pectoralis')) {
-      return '✨ Push-up tidak hanya melatih dada, tapi juga melibatkan core, trisep, dan bahu!';
-    } else if (question.contains('tulang')) {
-      return '📚 Manusia memiliki 206 tulang saat dewasa, tetapi saat lahir kita memiliki sekitar 270 tulang!';
-    } else if (question.contains('sendi')) {
-      return '🦴 Sendi adalah penghubung antar tulang. Tanpa sendi, tubuh kita tidak bisa bergerak dengan fleksibel!';
-    }
-    return '📖 Terus belajar! Memahami anatomi tubuh sangat penting untuk kesehatan dan kebugaran.';
   }
 }
 
-// ─── Feedback Dialog ──────────────────────────────────────
+// ── Feedback Dialog ───────────────────────────────────────────
 class _FeedbackDialog extends StatefulWidget {
   final bool isCorrect;
   final String correctAnswer;
   final VoidCallback onNext;
-
-  const _FeedbackDialog({
-    required this.isCorrect,
-    required this.correctAnswer,
-    required this.onNext,
-  });
-
+  const _FeedbackDialog({required this.isCorrect, required this.correctAnswer, required this.onNext});
   @override
   State<_FeedbackDialog> createState() => _FeedbackDialogState();
 }
 
-class _FeedbackDialogState extends State<_FeedbackDialog>
-    with SingleTickerProviderStateMixin {
+class _FeedbackDialogState extends State<_FeedbackDialog> with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
-  late Animation<double> _scaleAnim;
+  late Animation<double> _scale;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-        duration: const Duration(milliseconds: 400), vsync: this);
-    _scaleAnim =
-        CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
+    _ctrl = AnimationController(duration: const Duration(milliseconds: 400), vsync: this);
+    _scale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _ctrl.forward();
   }
-
   @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _ctrl.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
-    final isCorrect = widget.isCorrect;
-
+    final r = R.of(context);
+    final ok = widget.isCorrect;
     return ScaleTransition(
-      scale: _scaleAnim,
+      scale: _scale,
       child: Dialog(
         backgroundColor: Colors.transparent,
         child: Container(
-          padding: const EdgeInsets.all(28),
+          padding: EdgeInsets.all(r.pad + 4),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: (isCorrect ? AppColors.success : AppColors.danger)
-                    .withOpacity(0.25),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(r.radiusXl),
+            boxShadow: [BoxShadow(
+              color: (ok ? AppColors.success : AppColors.danger).withOpacity(0.25),
+              blurRadius: 30, offset: const Offset(0, 10))],
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon circle
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: r.w(80), height: r.w(80),
+              decoration: BoxDecoration(
+                color: ok ? AppColors.successLight : AppColors.dangerLight,
+                shape: BoxShape.circle),
+              child: Icon(
+                ok ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                size: r.w(44), color: ok ? AppColors.success : AppColors.danger),
+            ),
+            SizedBox(height: r.h(14)),
+            Text(ok ? 'Jawaban Benar!' : 'Jawaban Salah!',
+              style: GoogleFonts.poppins(fontSize: r.sp(20), fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+            SizedBox(height: r.h(8)),
+            if (ok)
               Container(
-                width: 80,
-                height: 80,
+                padding: EdgeInsets.symmetric(horizontal: r.pad, vertical: r.padXs + 2),
+                decoration: BoxDecoration(color: AppColors.warningLight, borderRadius: BorderRadius.circular(20)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.stars_rounded, color: AppColors.warning, size: r.iconSm + 2),
+                  SizedBox(width: r.w(6)),
+                  Text('+10 Poin', style: GoogleFonts.poppins(fontSize: r.sp(14), fontWeight: FontWeight.w700, color: AppColors.warning)),
+                ]))
+            else ...[
+              Text('Jawaban yang benar:',
+                style: GoogleFonts.inter(fontSize: r.sp(12), color: AppColors.textSecondary)),
+              SizedBox(height: r.h(6)),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: r.pad, vertical: r.padXs + 2),
                 decoration: BoxDecoration(
-                  color: isCorrect
-                      ? AppColors.successLight
-                      : AppColors.dangerLight,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  isCorrect
-                      ? Icons.check_circle_rounded
-                      : Icons.cancel_rounded,
-                  size: 48,
-                  color: isCorrect ? AppColors.success : AppColors.danger,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              Text(
-                isCorrect ? 'Jawaban Benar!' : 'Jawaban Salah!',
-                style: GoogleFonts.poppins(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-
-              const SizedBox(height: 8),
-
-              if (isCorrect)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.warningLight,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.stars_rounded,
-                          color: AppColors.warning, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        '+10 Poin',
-                        style: GoogleFonts.poppins(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.warning,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              if (!isCorrect) ...[
-                Text(
-                  'Jawaban yang benar:',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryPale,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                        color: AppColors.primary.withOpacity(0.2)),
-                  ),
-                  child: Text(
-                    widget.correctAnswer,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
-
-              const SizedBox(height: 24),
-
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: widget.onNext,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isCorrect
-                        ? AppColors.success
-                        : AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: Text(
-                    'Lanjut',
-                    style: GoogleFonts.poppins(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ),
+                  color: AppColors.primaryPale,
+                  borderRadius: BorderRadius.circular(r.padSm),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.2))),
+                child: Text(widget.correctAnswer, textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(fontSize: r.sp(13), fontWeight: FontWeight.w600, color: AppColors.primary))),
             ],
-          ),
+            SizedBox(height: r.h(20)),
+            SizedBox(
+              width: double.infinity, height: r.btnH,
+              child: ElevatedButton(
+                onPressed: widget.onNext,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ok ? AppColors.success : AppColors.primary,
+                  foregroundColor: Colors.white, elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(r.radius))),
+                child: Text('Lanjut',
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: r.sp(14))),
+              )),
+          ]),
         ),
       ),
     );

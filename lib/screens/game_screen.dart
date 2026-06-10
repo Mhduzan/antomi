@@ -2,14 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/colors.dart';
+import '../utils/responsive.dart';
 import '../utils/storage_helper.dart';
 import '../data/game_data.dart';
+import 'game_session_screen.dart';
 import '../models/game_puzzle.dart';
 import 'word_puzzle_screen.dart';
 import 'matching_puzzle_screen.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final GameSession session;
+  const GameScreen({super.key, required this.session});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -28,7 +31,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _stages = buildGameStages();
+    _stages = widget.session.stages;
 
     _fadeCtrl = AnimationController(
         duration: const Duration(milliseconds: 400), vsync: this);
@@ -67,23 +70,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+      final r = R.of(context);
     if (_gameFinished) return _buildResultScreen();
 
     final stage = _stages[_currentStage];
     final totalStages = _stages.length;
-    final wordCount = wordPuzzles.length;
-    final matchCount = matchingPuzzles.length;
-
-    // Tentukan label tipe stage
-    String stageLabel;
-    int stageTypeIndex;
-    if (stage.type == PuzzleType.wordGuess) {
-      stageTypeIndex = _currentStage + 1;
-      stageLabel = 'Tebak Gambar $stageTypeIndex/$wordCount';
-    } else {
-      stageTypeIndex = _currentStage - wordCount + 1;
-      stageLabel = 'Puzzle Matching $stageTypeIndex/$matchCount';
-    }
+    // Label dari session
+    final stageLabel = '${widget.session.title} · ${_currentStage + 1}/${_stages.length}';
 
     return Scaffold(
       backgroundColor: AppColors.background,

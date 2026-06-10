@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_puzzle.dart';
 import '../utils/colors.dart';
+import '../utils/responsive.dart';
 
 class MatchingPuzzleScreen extends StatefulWidget {
   final MatchingPuzzle puzzle;
@@ -23,12 +24,12 @@ class MatchingPuzzleScreen extends StatefulWidget {
 
 class _MatchingPuzzleScreenState extends State<MatchingPuzzleScreen>
     with TickerProviderStateMixin {
+  late R _r;
 
   // ── State matching ────────────────────────────────────────
   late List<MatchItem> _items;           // soal kiri (urutan tetap)
   late List<String> _answerPool;         // jawaban kanan (diacak)
   late Map<String, String?> _userAnswer; // id soal → jawaban yg dipilih user
-  String? _draggingAnswer;               // jawaban yg sedang di-drag
 
   bool _isChecked = false;
   Map<String, bool> _resultMap = {};     // id soal → benar/salah
@@ -188,14 +189,16 @@ class _MatchingPuzzleScreenState extends State<MatchingPuzzleScreen>
 
   @override
   Widget build(BuildContext context) {
+    final r = R.of(context);
+    _r = r;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: EdgeInsets.fromLTRB(r.pad, r.padSm, r.pad, r.pad + 8),
       child: Column(
         children: [
           // ── Info bar: Timer + Poin + Combo ────────────────
           _buildInfoBar(),
 
-          const SizedBox(height: 12),
+          SizedBox(height: r.h(10)),
 
           // ── Judul & instruksi ─────────────────────────────
           Container(
@@ -235,7 +238,7 @@ class _MatchingPuzzleScreenState extends State<MatchingPuzzleScreen>
             ),
           ),
 
-          const SizedBox(height: 14),
+          SizedBox(height: r.h(12)),
 
           // ── Area matching ─────────────────────────────────
           Row(
@@ -277,18 +280,18 @@ class _MatchingPuzzleScreenState extends State<MatchingPuzzleScreen>
             ],
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: r.h(14)),
 
           // ── Pembahasan (setelah dicek) ─────────────────────
           if (_isChecked) _buildPembahasan(),
 
-          const SizedBox(height: 14),
+          SizedBox(height: r.h(12)),
 
           // ── Tombol Cek ────────────────────────────────────
           if (!_isChecked)
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: r.btnH,
               child: ElevatedButton(
                 onPressed: _allFilled ? _checkAnswer : null,
                 style: ElevatedButton.styleFrom(
@@ -558,7 +561,7 @@ class _MatchingPuzzleScreenState extends State<MatchingPuzzleScreen>
                         ),
                       )
                     : Container(
-                        height: 36,
+                        height: _r.h(36),
                         decoration: BoxDecoration(
                           color: hovering
                               ? AppColors.primary.withOpacity(0.08)
