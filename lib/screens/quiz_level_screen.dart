@@ -1,407 +1,234 @@
 // lib/screens/quiz_level_screen.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:math' as math;
 import '../utils/colors.dart';
+import '../utils/responsive.dart';
 import '../utils/storage_helper.dart';
 import 'quiz_question_screen.dart';
 
 class QuizLevelScreen extends StatefulWidget {
   const QuizLevelScreen({super.key});
-
   @override
   State<QuizLevelScreen> createState() => _QuizLevelScreenState();
 }
 
-class _QuizLevelScreenState extends State<QuizLevelScreen>
-    with TickerProviderStateMixin {
-  int _levelTerbuka = 1;
-  int _totalPoin = 0;
-  Map<int, int> _skorPerLevel = {1: 0, 2: 0, 3: 0};
-  bool _isLoading = true;
+class _QuizLevelScreenState extends State<QuizLevelScreen> with TickerProviderStateMixin {
+  int _levelTerbuka = 1, _totalPoin = 0;
+  Map<int, int> _skor = {1: 0, 2: 0, 3: 0};
+  bool _loading = true;
 
-  late AnimationController _pulseCtrl;
   late AnimationController _floatCtrl;
-  late Animation<double> _pulseAnim;
   late Animation<double> _floatAnim;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-
-    _pulseCtrl = AnimationController(
-        duration: const Duration(milliseconds: 1200), vsync: this)
-      ..repeat(reverse: true);
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.04).animate(
-        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
-
-    _floatCtrl = AnimationController(
-        duration: const Duration(milliseconds: 2000), vsync: this)
-      ..repeat(reverse: true);
-    _floatAnim = Tween<double>(begin: -5, end: 5).animate(
-        CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
+    _floatCtrl = AnimationController(duration: const Duration(milliseconds: 2000), vsync: this)..repeat(reverse: true);
+    _floatAnim = Tween<double>(begin: -4, end: 4).animate(CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
   }
 
   @override
-  void dispose() {
-    _pulseCtrl.dispose();
-    _floatCtrl.dispose();
-    super.dispose();
-  }
+  void dispose() { _floatCtrl.dispose(); super.dispose(); }
 
   Future<void> _loadData() async {
-    final storage = StorageHelper();
-    _levelTerbuka = await storage.getLevelTerbuka();
-    _totalPoin = await storage.getTotalPoin();
-    for (int i = 1; i <= 3; i++) {
-      _skorPerLevel[i] = await storage.getSkorLevel(i);
-    }
-    if (mounted) setState(() => _isLoading = false);
+    final st = StorageHelper();
+    _levelTerbuka = await st.getLevelTerbuka();
+    _totalPoin    = await st.getTotalPoin();
+    for (int i = 1; i <= 3; i++) _skor[i] = await st.getSkorLevel(i);
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final r = R.of(context);
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          'Pilih Level Quiz',
-          style: GoogleFonts.poppins(
-              fontWeight: FontWeight.w700, fontSize: 18),
-        ),
-        centerTitle: true,
-      ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary))
-          : Column(
-              children: [
-                // Blue header
-                Container(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                  ),
-                  child: Row(
-                    children: [
-                      _statChip(
-                          Icons.stars_rounded,
-                          '$_totalPoin Poin',
-                          Colors.amber),
-                      const SizedBox(width: 10),
-                      _statChip(
-                          Icons.emoji_events_rounded,
-                          'Level $_levelTerbuka/3',
-                          Colors.white),
-                    ],
-                  ),
-                ),
-
-                // Tip card
-                Container(
-                  margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryPale,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: AppColors.primary.withOpacity(0.2),
-                        width: 1),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.lightbulb_rounded,
-                          color: AppColors.primary, size: 18),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Semakin tinggi level, semakin banyak poin yang kamu dapatkan!',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.primaryDark,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      _buildLevelCard(
-                        level: 1,
-                        title: 'Level 1',
-                        subtitle: 'Dasar · Pengenalan Anatomi',
-                        emoji: '📚',
-                        totalQ: 10,
-                        targetBuka: 0,
-                        color: AppColors.success,
-                        unlocked: true,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildLevelCard(
-                        level: 2,
-                        title: 'Level 2',
-                        subtitle: 'Sedang · Fungsi & Pergerakan',
-                        emoji: '⚡',
-                        totalQ: 20,
-                        targetBuka: 50,
-                        color: AppColors.warning,
-                        unlocked: _levelTerbuka >= 2,
-                      ),
-                      const SizedBox(height: 12),
-                      _buildLevelCard(
-                        level: 3,
-                        title: 'Level 3',
-                        subtitle: 'Sulit · Analisis & Cedera',
-                        emoji: '🏆',
-                        totalQ: 30,
-                        targetBuka: 120,
-                        color: AppColors.danger,
-                        unlocked: _levelTerbuka >= 3,
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-
-  Widget _statChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.18),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: Colors.white.withOpacity(0.25), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      body: Column(
         children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          // Header
+          Container(
+            decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(r.pad, r.padXs, r.pad, r.pad + 4),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _backBtn(r, context),
+                        Expanded(child: Center(child: Text('Pilih Level Quiz',
+                          style: GoogleFonts.poppins(fontSize: r.sp(16), fontWeight: FontWeight.w700, color: Colors.white)))),
+                        const SizedBox(width: 36),
+                      ],
+                    ),
+                    SizedBox(height: r.h(14)),
+                    Row(
+                      children: [
+                        _statChip(r, Icons.stars_rounded, '$_totalPoin Poin', Colors.amber),
+                        SizedBox(width: r.padSm),
+                        _statChip(r, Icons.emoji_events_rounded, 'Level $_levelTerbuka/3', Colors.white),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
+
+          if (_loading)
+            const Expanded(child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
+          else
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.all(r.pad),
+                children: [
+                  // Tip
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: r.pad, vertical: r.padSm),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryPale,
+                      borderRadius: BorderRadius.circular(r.radius),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                    ),
+                    child: Row(children: [
+                      Icon(Icons.lightbulb_rounded, color: AppColors.primary, size: r.iconSm),
+                      SizedBox(width: r.padSm),
+                      Expanded(child: Text('Semakin tinggi level, semakin banyak poin!',
+                        style: GoogleFonts.inter(fontSize: r.sp(12), color: AppColors.primaryDark))),
+                    ]),
+                  ),
+                  SizedBox(height: r.h(14)),
+                  _levelCard(r, 1, 'Level 1', 'Dasar · Pengenalan Anatomi', '📚', 10, 0, AppColors.success, true),
+                  SizedBox(height: r.h(10)),
+                  _levelCard(r, 2, 'Level 2', 'Sedang · Fungsi & Pergerakan', '⚡', 20, 50, AppColors.warning, _levelTerbuka >= 2),
+                  SizedBox(height: r.h(10)),
+                  _levelCard(r, 3, 'Level 3', 'Sulit · Analisis & Cedera', '🏆', 30, 120, AppColors.danger, _levelTerbuka >= 3),
+                  SizedBox(height: r.h(20)),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildLevelCard({
-    required int level,
-    required String title,
-    required String subtitle,
-    required String emoji,
-    required int totalQ,
-    required int targetBuka,
-    required Color color,
-    required bool unlocked,
-  }) {
-    final skor = _skorPerLevel[level] ?? 0;
-    final isCompleted = skor >= totalQ;
+  Widget _backBtn(R r, BuildContext ctx) => GestureDetector(
+    onTap: () => Navigator.pop(ctx),
+    child: Container(
+      width: r.w(36), height: r.w(36),
+      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(r.padSm)),
+      child: Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: r.iconSm),
+    ),
+  );
+
+  Widget _statChip(R r, IconData icon, String label, Color color) => Container(
+    padding: EdgeInsets.symmetric(horizontal: r.pad - 2, vertical: r.padXs + 2),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.18), borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: Colors.white.withOpacity(0.25)),
+    ),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, color: color, size: r.iconSm),
+      SizedBox(width: r.w(5)),
+      Text(label, style: GoogleFonts.poppins(fontSize: r.sp(12), fontWeight: FontWeight.w600, color: Colors.white)),
+    ]),
+  );
+
+  Widget _levelCard(R r, int level, String title, String subtitle, String emoji,
+      int totalQ, int targetPoin, Color color, bool unlocked) {
+    final skor = _skor[level] ?? 0;
     final progress = unlocked && totalQ > 0
         ? (skor / totalQ).clamp(0.0, 1.0)
-        : targetBuka > 0
-            ? (_totalPoin / targetBuka).clamp(0.0, 1.0)
-            : 0.0;
+        : targetPoin > 0 ? (_totalPoin / targetPoin).clamp(0.0, 1.0) : 0.0;
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 300 + level * 100),
+      duration: Duration(milliseconds: 300 + level * 80),
       curve: Curves.easeOutBack,
       builder: (_, val, __) => Transform.scale(
         scale: val,
         child: GestureDetector(
-          onTap: unlocked
-              ? () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => QuizQuestionScreen(level: level),
-                    ),
-                  ).then((_) => _loadData())
-              : null,
+          onTap: unlocked ? () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => QuizQuestionScreen(level: level)))
+              .then((_) => _loadData()) : null,
           child: Container(
-            padding: const EdgeInsets.all(18),
+            padding: EdgeInsets.all(r.pad - 2),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: unlocked
-                      ? color.withOpacity(0.12)
-                      : Colors.grey.withOpacity(0.08),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-              border: Border.all(
-                color: unlocked
-                    ? color.withOpacity(0.2)
-                    : AppColors.divider,
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(r.radiusLg),
+              border: Border.all(color: unlocked ? color.withOpacity(0.2) : AppColors.divider, width: 1.5),
+              boxShadow: [BoxShadow(color: (unlocked ? color : Colors.grey).withOpacity(0.1), blurRadius: 12, offset: const Offset(0, 4))],
             ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    // Emoji circle
                     Container(
-                      width: 56,
-                      height: 56,
+                      width: r.w(52), height: r.w(52),
                       decoration: BoxDecoration(
-                        color: unlocked
-                            ? color.withOpacity(0.1)
-                            : AppColors.inputBg,
+                        color: unlocked ? color.withOpacity(0.1) : AppColors.inputBg,
                         shape: BoxShape.circle,
                       ),
-                      child: Center(
-                        child: Text(emoji,
-                            style: const TextStyle(fontSize: 26)),
-                      ),
+                      child: Center(child: Text(emoji, style: TextStyle(fontSize: r.sp(24)))),
                     ),
-
-                    const SizedBox(width: 14),
-
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: GoogleFonts.poppins(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                              color: unlocked
-                                  ? AppColors.textPrimary
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
-                          Text(
-                            subtitle,
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Status badge
+                    SizedBox(width: r.padSm),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(title, style: GoogleFonts.poppins(fontSize: r.sp(16), fontWeight: FontWeight.w700,
+                          color: unlocked ? AppColors.textPrimary : AppColors.textSecondary)),
+                      Text(subtitle, style: GoogleFonts.inter(fontSize: r.sp(11), color: AppColors.textSecondary)),
+                    ])),
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                      padding: EdgeInsets.symmetric(horizontal: r.padSm, vertical: r.padXs),
                       decoration: BoxDecoration(
-                        color: unlocked
-                            ? color.withOpacity(0.1)
-                            : AppColors.inputBg,
-                        borderRadius: BorderRadius.circular(10),
+                        color: unlocked ? color.withOpacity(0.1) : AppColors.inputBg,
+                        borderRadius: BorderRadius.circular(r.padSm),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            unlocked
-                                ? (isCompleted
-                                    ? Icons.check_circle_rounded
-                                    : Icons.play_circle_rounded)
-                                : Icons.lock_rounded,
-                            size: 14,
-                            color: unlocked ? color : AppColors.textLight,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            unlocked
-                                ? (isCompleted ? 'Selesai' : 'OPEN')
-                                : 'Terkunci',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color:
-                                  unlocked ? color : AppColors.textLight,
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: Row(children: [
+                        Icon(unlocked ? Icons.play_circle_rounded : Icons.lock_rounded,
+                            size: r.iconSm - 2, color: unlocked ? color : AppColors.textLight),
+                        SizedBox(width: r.w(3)),
+                        Text(unlocked ? 'OPEN' : 'Terkunci',
+                            style: GoogleFonts.poppins(fontSize: r.sp(10), fontWeight: FontWeight.w700,
+                                color: unlocked ? color : AppColors.textLight)),
+                      ]),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 14),
+                SizedBox(height: r.h(12)),
 
                 // Info chips
-                Row(
-                  children: [
-                    _infoChip(Icons.quiz_outlined, '$totalQ Soal',
-                        AppColors.primary),
-                    const SizedBox(width: 8),
-                    _infoChip(Icons.stars_rounded, '+10 Poin/soal',
-                        AppColors.warning),
-                    if (!unlocked && targetBuka > 0) ...[
-                      const SizedBox(width: 8),
-                      _infoChip(Icons.lock_clock_rounded,
-                          'Butuh $targetBuka Poin', AppColors.danger),
-                    ],
+                Row(children: [
+                  _chip(r, Icons.quiz_outlined, '$totalQ Soal', AppColors.primary),
+                  SizedBox(width: r.w(6)),
+                  _chip(r, Icons.stars_rounded, '+10 Poin/soal', AppColors.warning),
+                  if (!unlocked && targetPoin > 0) ...[
+                    SizedBox(width: r.w(6)),
+                    _chip(r, Icons.lock_clock_rounded, 'Butuh $targetPoin Poin', AppColors.danger),
                   ],
-                ),
+                ]),
 
-                const SizedBox(height: 12),
+                SizedBox(height: r.h(10)),
 
                 // Progress bar
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          unlocked ? 'Progress Belajar' : 'Menuju Pembukaan',
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          unlocked
-                              ? '$skor/$totalQ Soal'
-                              : '$_totalPoin/$targetBuka Poin',
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: unlocked ? color : AppColors.textLight,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        backgroundColor: AppColors.inputBg,
-                        color: unlocked ? color : AppColors.textLight,
-                        minHeight: 6,
-                      ),
-                    ),
-                  ],
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text(unlocked ? 'Progress' : 'Menuju Pembukaan',
+                      style: GoogleFonts.inter(fontSize: r.sp(10), color: AppColors.textSecondary)),
+                  Text(unlocked ? '$skor/$totalQ Soal' : '$_totalPoin/$targetPoin Poin',
+                      style: GoogleFonts.inter(fontSize: r.sp(10), fontWeight: FontWeight.w600,
+                          color: unlocked ? color : AppColors.textLight)),
+                ]),
+                SizedBox(height: r.h(5)),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    backgroundColor: AppColors.inputBg,
+                    color: unlocked ? color : AppColors.textLight,
+                    minHeight: r.h(6),
+                  ),
                 ),
               ],
             ),
@@ -411,28 +238,13 @@ class _QuizLevelScreenState extends State<QuizLevelScreen>
     );
   }
 
-  Widget _infoChip(IconData icon, String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _chip(R r, IconData icon, String label, Color color) => Container(
+    padding: EdgeInsets.symmetric(horizontal: r.padXs + 2, vertical: r.padXs),
+    decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(r.padXs + 2)),
+    child: Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: r.sp(10), color: color),
+      SizedBox(width: r.w(3)),
+      Text(label, style: GoogleFonts.inter(fontSize: r.sp(10), fontWeight: FontWeight.w600, color: color)),
+    ]),
+  );
 }

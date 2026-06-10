@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/game_puzzle.dart';
 import '../utils/colors.dart';
+import '../utils/responsive.dart';
 
 class WordPuzzleScreen extends StatefulWidget {
   final WordPuzzle puzzle;
@@ -22,6 +23,7 @@ class WordPuzzleScreen extends StatefulWidget {
 
 class _WordPuzzleScreenState extends State<WordPuzzleScreen>
     with TickerProviderStateMixin {
+  late R _r;
   // ── State ────────────────────────────────────────────────────
   late List<String> _pool;          // huruf yang tersedia
   late List<String?> _slots;        // slot jawaban (index per huruf correctWord)
@@ -159,11 +161,13 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
 
   @override
   Widget build(BuildContext context) {
+    final r = R.of(context);
+    _r = r;
     final puzzle = widget.puzzle;
     final word = puzzle.correctWord;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: EdgeInsets.fromLTRB(r.pad, r.padSm, r.pad, r.pad + 8),
       child: Column(
         children: [
           // ── Gambar + hint ─────────────────────────────────
@@ -186,7 +190,7 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
                       const BorderRadius.vertical(top: Radius.circular(20)),
                   child: Image.asset(
                     puzzle.imageAsset,
-                    height: 170,
+                    height: r.imgH,
                     width: double.infinity,
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => Container(
@@ -259,7 +263,7 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
             ),
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: r.h(14)),
 
           // ── Slot jawaban (per huruf) ───────────────────────
           AnimatedBuilder(
@@ -280,7 +284,7 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
             ),
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: r.h(14)),
 
           // ── Pool huruf ────────────────────────────────────
           Container(
@@ -348,8 +352,8 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
                           : () => _pickLetter(i),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
-                        width: 42,
-                        height: 42,
+                        width: r.w(42),
+                        height: r.w(42),
                         decoration: BoxDecoration(
                           color: used
                               ? AppColors.inputBg
@@ -369,7 +373,7 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
                           child: Text(
                             used ? '' : letter,
                             style: GoogleFonts.poppins(
-                              fontSize: 16,
+                              fontSize: r.sp(15),
                               fontWeight: FontWeight.w800,
                               color: used
                                   ? Colors.transparent
@@ -385,18 +389,18 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
             ),
           ),
 
-          const SizedBox(height: 14),
+          SizedBox(height: r.h(12)),
 
           // ── Feedback bar ──────────────────────────────────
           if (_isChecked) _buildFeedback(),
 
-          const SizedBox(height: 14),
+          SizedBox(height: r.h(12)),
 
           // ── Tombol cek ────────────────────────────────────
           if (!_isChecked)
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: r.btnH,
               child: ElevatedButton(
                 onPressed: _isFull ? _checkAnswer : null,
                 style: ElevatedButton.styleFrom(
@@ -487,8 +491,8 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
                 onTap: filled && !_isChecked ? () => _removeSlot(i) : null,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  width: 38,
-                  height: 44,
+                  width: _r.w(36),
+                  height: _r.w(42),
                   decoration: BoxDecoration(
                     color: slotColor,
                     borderRadius: BorderRadius.circular(10),

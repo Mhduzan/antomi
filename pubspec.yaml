@@ -25,5 +25,6 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/
-    - assets/game/ 
+    - assets/ 
+    - assets/quiz/
+    - assets/game/
