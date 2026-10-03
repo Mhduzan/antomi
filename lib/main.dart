@@ -12,11 +12,11 @@ void main() {
       statusBarIconBrightness: Brightness.light,
     ),
   );
-  runApp(const AndomiApp());
+  runApp(const AnatomiApp());
 }
 
-class AndomiApp extends StatelessWidget {
-  const AndomiApp({super.key});
+class AnatomiApp extends StatelessWidget {
+  const AnatomiApp({super.key});
 
   @override
   Widget build(BuildContext context) {

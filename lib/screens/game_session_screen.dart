@@ -2,7 +2,6 @@
 // Layar pemilihan sesi sebelum masuk game
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:math' as math;
 import '../utils/colors.dart';
 import '../utils/responsive.dart';
 import '../utils/storage_helper.dart';
@@ -21,9 +20,7 @@ class _GameSessionScreenState extends State<GameSessionScreen>
   int _totalPoin = 0;
   late List<GameSession> _sessions;
 
-  late AnimationController _waveCtrl;
   late AnimationController _floatCtrl;
-  late Animation<double> _waveAnim;
   late Animation<double> _floatAnim;
 
   @override
@@ -31,12 +28,6 @@ class _GameSessionScreenState extends State<GameSessionScreen>
     super.initState();
     _sessions = buildGameSessions();
     _loadPoin();
-
-    _waveCtrl = AnimationController(
-        duration: const Duration(seconds: 4), vsync: this)
-      ..repeat();
-    _waveAnim =
-        Tween<double>(begin: 0, end: 2 * math.pi).animate(_waveCtrl);
 
     _floatCtrl = AnimationController(
         duration: const Duration(milliseconds: 2000), vsync: this)
@@ -47,7 +38,6 @@ class _GameSessionScreenState extends State<GameSessionScreen>
 
   @override
   void dispose() {
-    _waveCtrl.dispose();
     _floatCtrl.dispose();
     super.dispose();
   }

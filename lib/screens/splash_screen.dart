@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/colors.dart';
 import '../utils/responsive.dart';
+import '../services/quiz_service.dart';
 import 'welcome_screen.dart';
+import 'name_entry_screen.dart';
 import 'dart:math' as math;
 
 class SplashScreen extends StatefulWidget {
@@ -31,11 +33,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     _dotsCtrl = AnimationController(duration: const Duration(milliseconds: 1200), vsync: this)..repeat();
     _dotsAnim = Tween<double>(begin: 0, end: 1).animate(_dotsCtrl);
 
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 3), () async {
+      // Pakai hasIdentity(), bukan cek id server. User yang tadi mendaftar
+      // saat offline belum punya id, tapi namanya sudah ada — dia tidak
+      // boleh disuruh isi nama lagi.
+      final sudahIsiNama = await QuizService().hasIdentity();
+      final nextScreen = sudahIsiNama ? const WelcomeScreen() : const NameEntryScreen();
       if (mounted) {
         Navigator.pushReplacement(context,
           PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const WelcomeScreen(),
+            pageBuilder: (_, __, ___) => nextScreen,
             transitionsBuilder: (_, anim, __, child) => FadeTransition(opacity: anim, child: child),
             transitionDuration: const Duration(milliseconds: 500),
           ),
@@ -92,7 +99,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                           ),
                           child: ClipOval(
                             child: Image.asset(
-                              'assets/Gemini_Generated_Image_3tqpec3tqpec3tqp.png',
+                              'assets/anatoquiz_logo.png',
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Icon(Icons.medical_services_rounded, size: r.iconLg * 1.5, color: AppColors.primary),
                             ),
@@ -103,7 +110,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
                     SizedBox(height: r.h(24)),
 
-                    Text('ANDOMI',
+                    Text('ANATOMI',
                       style: GoogleFonts.poppins(
                         fontSize: r.sp(28),
                         fontWeight: FontWeight.w800,

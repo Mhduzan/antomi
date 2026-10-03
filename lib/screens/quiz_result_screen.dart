@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/storage_helper.dart';
+import '../services/quiz_service.dart';
 import '../utils/colors.dart';
 import '../utils/responsive.dart';
 import 'quiz_question_screen.dart';
@@ -35,6 +36,18 @@ class _QuizResultScreenState extends State<QuizResultScreen> with TickerProvider
     _scaleCtrl.forward();
     Future.delayed(const Duration(milliseconds: 200), () => _slideCtrl.forward());
     _checkNextLevel();
+    _submitScoreToApi();
+  }
+
+  Future<void> _submitScoreToApi() async {
+    await QuizService().submitScore(
+      activityType: 'quiz',
+      level: widget.level,
+      score: widget.poinDidapat,
+      // Satu jawaban benar = 10 poin, jadi poin maksimal = jumlah soal x 10.
+      // Kalau diisi jumlah soal saja, di server terlihat seperti "100/10".
+      maxScore: widget.totalQuestions * 10,
+    );
   }
 
   @override

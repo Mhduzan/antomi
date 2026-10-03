@@ -2,10 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../utils/colors.dart';
-import '../utils/responsive.dart';
 import '../utils/storage_helper.dart';
+import '../services/quiz_service.dart';
 import '../data/game_data.dart';
-import 'game_session_screen.dart';
 import '../models/game_puzzle.dart';
 import 'word_puzzle_screen.dart';
 import 'matching_puzzle_screen.dart';
@@ -65,12 +64,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final storage = StorageHelper();
     final existing = await storage.getTotalPoin();
     await storage.saveTotalPoin(existing + _totalPoin);
+
+    final isMatching = _stages.isNotEmpty && _stages.first.type == PuzzleType.matching;
+    QuizService().submitScore(
+      activityType: isMatching ? 'matching' : 'word_guess',
+      level: widget.session.sessionNumber,
+      score: _totalPoin,
+      maxScore: _stages.length * 10,
+    );
+
     if (mounted) setState(() => _gameFinished = true);
   }
 
   @override
   Widget build(BuildContext context) {
-      final r = R.of(context);
     if (_gameFinished) return _buildResultScreen();
 
     final stage = _stages[_currentStage];

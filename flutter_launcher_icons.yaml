@@ -1,6 +1,11 @@
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/anatomilogo.jpg"
-  adaptive_icon_background: "#667eea"
-  adaptive_icon_foreground: "assets/anatomilogo.jpg"
+  # Ikon utama (Android lawas & iOS): emblem penuh di kanvas putih.
+  image_path: "assets/anatoquiz_logo.png"
+  # App Store menolak ikon ber-alpha; tidak berpengaruh ke build Android.
+  remove_alpha_ios: true
+  # Ikon adaptif Android: Android memotong foreground jadi lingkaran/squircle,
+  # jadi emblemnya dikecilkan ~64% supaya tepinya tidak terpotong mask.
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/anatoquiz_logo_fg.png"

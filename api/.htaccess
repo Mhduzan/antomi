@@ -1,0 +1,21 @@
+RewriteEngine On
+
+# Teruskan header X-API-KEY ke PHP.
+# HARUS di atas rule front-controller: rule itu memakai [L] sehingga
+# aturan di bawahnya tidak pernah dijalankan.
+# Sebagian setup PHP-CGI membuang header custom kalau baris ini tidak ada.
+RewriteCond %{HTTP:X-API-KEY} .
+RewriteRule ^ - [E=HTTP_X_API_KEY:%{HTTP:X-API-KEY}]
+
+# Semua request yang bukan file/folder nyata dilempar ke index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# Jangan biarkan file non-PHP diunduh publik (schema.sql, README, config contoh)
+<FilesMatch "\.(sql|md|json)$">
+    Require all denied
+</FilesMatch>
+
+# Matikan directory listing
+Options -Indexes

@@ -5,10 +5,14 @@ import 'dart:math' as math;
 import '../utils/colors.dart';
 import '../utils/responsive.dart';
 import '../utils/storage_helper.dart';
+import '../services/quiz_service.dart';
 import 'quiz_level_screen.dart';
 import 'game_session_screen.dart';
 import 'profile_screen.dart';
 import 'about_screen.dart';
+import 'leaderboard_screen.dart';
+import 'admin_manage_screen.dart';
+import 'name_entry_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -18,6 +22,10 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   int _totalPoin = 0, _levelTerbuka = 1;
+  bool _isAdmin = false;
+  String _userName = '';
+  String _avatar = '👤';
+  final _quizService = QuizService();
   late AnimationController _waveCtrl, _floatCtrl;
   late Animation<double> _waveAnim, _floatAnim;
 
@@ -37,7 +45,25 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
   Future<void> _loadData() async {
     final poin  = await StorageHelper().getTotalPoin();
     final level = await StorageHelper().getLevelTerbuka();
-    if (mounted) setState(() { _totalPoin = poin; _levelTerbuka = level; });
+    final name = await _quizService.getSavedUserName();
+    final avatar = await _quizService.getSavedAvatar();
+    if (mounted) {
+      setState(() {
+        _totalPoin = poin;
+        _levelTerbuka = level;
+        _userName = name ?? '';
+        _avatar = avatar ?? '👤';
+      });
+    }
+    // Kalau dulu daftarnya gagal (offline), coba daftarkan lagi diam-diam.
+    if (await _quizService.retryPendingRegistration() && mounted) {
+      setState(() {}); // identitas server sudah dapat
+    }
+
+    // Sinkron status admin. Hasilnya di-cache di dalam syncAdminStatus(),
+    // jadi ini tidak memanggil server tiap kali menu dibuka.
+    final isAdmin = await _quizService.syncAdminStatus();
+    if (mounted) setState(() => _isAdmin = isAdmin);
   }
 
   @override
@@ -84,22 +110,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                       mainAxisSpacing: r.padSm + 4,
                       childAspectRatio: r.gridAspect,
                       physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _menuCard(r, 0, Icons.quiz_rounded, 'QUIZ', 'Uji Pengetahuan', AppColors.primary, () async {
-                          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizLevelScreen()));
-                          if (res == true) _loadData();
-                        }),
-                        _menuCard(r, 1, Icons.extension_rounded, 'TEBAK\nGAMBAR', 'Word Puzzle', const Color(0xFF0EA5E9), () async {
-                          final res = await Navigator.push(context, MaterialPageRoute(builder: (_) => const GameSessionScreen()));
-                          if (res == true) _loadData();
-                        }),
-                        _menuCard(r, 2, Icons.person_rounded, 'PROFIL', 'Lihat Progres', const Color(0xFF6366F1), () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())).then((_) => _loadData());
-                        }),
-                        _menuCard(r, 3, Icons.info_rounded, 'TENTANG', 'Info Aplikasi', const Color(0xFF8B5CF6), () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
-                        }),
-                      ],
+                      children: _buildMenuCards(r),
                     ),
                   ),
                 ),
@@ -112,12 +123,50 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
     );
   }
 
+  List<Widget> _buildMenuCards(R r) {
+    final cards = <Widget>[
+      // Selalu _loadData() setelah kembali, tidak bergantung nilai balik.
+      // Layar game menutup dirinya dengan Navigator.pop(context) tanpa nilai,
+      // jadi pengecekan `res == true` bikin poin di menu tidak pernah
+      // ter-update setelah main Tebak Gambar. Refresh ini murah: bacanya
+      // dari penyimpanan lokal, dan status admin sudah di-cache.
+      _menuCard(r, 0, Icons.quiz_rounded, 'QUIZ', 'Uji Pengetahuan', AppColors.primary, () async {
+        await Navigator.push(context, MaterialPageRoute(builder: (_) => const QuizLevelScreen()));
+        _loadData();
+      }),
+      _menuCard(r, 1, Icons.extension_rounded, 'TEBAK\nGAMBAR', 'Word Puzzle', const Color(0xFF0EA5E9), () async {
+        await Navigator.push(context, MaterialPageRoute(builder: (_) => const GameSessionScreen()));
+        _loadData();
+      }),
+      _menuCard(r, 2, Icons.person_rounded, 'PROFIL', 'Lihat Progres', const Color(0xFF6366F1), () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())).then((_) => _loadData());
+      }),
+      _menuCard(r, 3, Icons.info_rounded, 'TENTANG', 'Info Aplikasi', const Color(0xFF8B5CF6), () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutScreen()));
+      }),
+      _menuCard(r, 4, Icons.leaderboard_rounded, 'PERINGKAT', 'Papan Juara', const Color(0xFF10B981), () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardScreen()));
+      }),
+    ];
+
+    // Khusus admin: kartu tambahan buat kelola admin
+    if (_isAdmin) {
+      cards.add(
+        _menuCard(r, 5, Icons.admin_panel_settings_rounded, 'KELOLA\nADMIN', 'Angkat Admin Baru', const Color(0xFFDC2626), () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminManageScreen()));
+        }),
+      );
+    }
+
+    return cards;
+  }
+
   Widget _buildHeader(R r) {
     return Padding(
       padding: EdgeInsets.fromLTRB(r.pad, r.padSm + 4, r.pad, 0),
       child: Row(
         children: [
-          // Foto profil
+          // Avatar profil (stiker yang dipilih user)
           Container(
             width: r.avatarMd, height: r.avatarMd,
             decoration: BoxDecoration(
@@ -125,13 +174,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
               shape: BoxShape.circle,
               boxShadow: [BoxShadow(color: Colors.white.withOpacity(0.3), blurRadius: 12, spreadRadius: 2)],
             ),
-            child: ClipOval(
-              child: Image.asset(
-                'assets/ulpa.jpg',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(Icons.person_rounded, color: AppColors.primary, size: r.iconMd),
-              ),
-            ),
+            child: Center(child: Text(_avatar, style: TextStyle(fontSize: r.iconMd))),
           ),
 
           SizedBox(width: r.padSm),
@@ -140,7 +183,7 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Hai, Selamat Mengerjakan! 👋',
                 style: GoogleFonts.inter(fontSize: r.sp(12), color: Colors.white.withOpacity(0.85))),
-              Text('MariaUlva',
+              Text(_userName.isEmpty ? 'Pengguna' : _userName,
                 style: GoogleFonts.poppins(fontSize: r.sp(16), fontWeight: FontWeight.w700, color: Colors.white)),
             ]),
           ),
@@ -159,9 +202,49 @@ class _MenuScreenState extends State<MenuScreen> with TickerProviderStateMixin {
                 style: GoogleFonts.poppins(fontSize: r.sp(11), fontWeight: FontWeight.w700, color: Colors.white)),
             ]),
           ),
+
+          SizedBox(width: r.w(6)),
+
+          GestureDetector(
+            onTap: _confirmLogout,
+            child: Container(
+              width: r.w(34), height: r.w(34),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
+              ),
+              child: Icon(Icons.logout_rounded, color: Colors.white, size: r.iconSm - 2),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Keluar?'),
+        content: const Text('Kamu perlu isi nama lagi buat masuk. Poin yang sudah tersimpan di server tidak akan hilang.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Keluar')),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _quizService.logout();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const NameEntryScreen()),
+          (route) => false,
+        );
+      }
+    }
   }
 
   Widget _buildPoinCard(R r) {
