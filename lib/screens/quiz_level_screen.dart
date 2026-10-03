@@ -17,19 +17,11 @@ class _QuizLevelScreenState extends State<QuizLevelScreen> with TickerProviderSt
   Map<int, int> _skor = {1: 0, 2: 0, 3: 0};
   bool _loading = true;
 
-  late AnimationController _floatCtrl;
-  late Animation<double> _floatAnim;
-
   @override
   void initState() {
     super.initState();
     _loadData();
-    _floatCtrl = AnimationController(duration: const Duration(milliseconds: 2000), vsync: this)..repeat(reverse: true);
-    _floatAnim = Tween<double>(begin: -4, end: 4).animate(CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
   }
-
-  @override
-  void dispose() { _floatCtrl.dispose(); super.dispose(); }
 
   Future<void> _loadData() async {
     final st = StorageHelper();

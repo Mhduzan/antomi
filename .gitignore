@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/release
 
 .vscode/templates
+
+# Backend API — kredensial database, jangan ikut ke Git
+/api/config.php
+
+# Arsip lama
+lib.zip

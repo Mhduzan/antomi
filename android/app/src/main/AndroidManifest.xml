@@ -1,6 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Dibutuhkan untuk memanggil API (daftar nama, kirim skor, leaderboard)
+         dan untuk mengunduh font Google Fonts. Tanpa baris ini semuanya
+         gagal di APK release, walaupun jalan normal saat `flutter run`. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="antomi"
+        android:label="Anatomi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

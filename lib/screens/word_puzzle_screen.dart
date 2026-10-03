@@ -500,7 +500,7 @@ class _WordPuzzleScreenState extends State<WordPuzzleScreen>
                   ),
                   child: Center(
                     child: Text(
-                      filled ? letter! : '',
+                      filled ? letter : '',
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,

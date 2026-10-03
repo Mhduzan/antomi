@@ -18,13 +18,12 @@ import 'package:flutter/material.dart';
 class R {
   final double _w;
   final double _h;
-  final double _pxRatio;
 
-  R._(this._w, this._h, this._pxRatio);
+  R._(this._w, this._h);
 
   factory R.of(BuildContext context) {
     final mq = MediaQuery.of(context);
-    return R._(mq.size.width, mq.size.height, mq.devicePixelRatio);
+    return R._(mq.size.width, mq.size.height);
   }
 
   // ── Breakpoints ─────────────────────────────────────────────

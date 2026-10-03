@@ -51,8 +51,18 @@ class StorageHelper {
     return prefs.getInt(skorLevel3Key) ?? 0;
   }
 
+  /// Hapus poin & progres level saja.
+  ///
+  /// JANGAN pakai `prefs.clear()` di sini: itu ikut menghapus identitas user
+  /// (id, nama, avatar, status admin) milik QuizService, sehingga user
+  /// ter-logout diam-diam padahal dialognya cuma menjanjikan "poin dan skor
+  /// akan dihapus".
   Future<void> resetProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove(totalPoinKey);
+    await prefs.remove(levelTerbukaKey);
+    await prefs.remove(skorLevel1Key);
+    await prefs.remove(skorLevel2Key);
+    await prefs.remove(skorLevel3Key);
   }
 }

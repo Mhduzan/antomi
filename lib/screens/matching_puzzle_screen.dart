@@ -38,7 +38,6 @@ class _MatchingPuzzleScreenState extends State<MatchingPuzzleScreen>
   static const int _initialSeconds = 60;
   int _secondsLeft = _initialSeconds;
   Timer? _timer;
-  bool _timeUp = false;
 
   // ── Combo ─────────────────────────────────────────────────
   int _combo = 0;
@@ -67,7 +66,6 @@ class _MatchingPuzzleScreenState extends State<MatchingPuzzleScreen>
     _userAnswer = {for (final item in _items) item.id: null};
     _isChecked = false;
     _resultMap = {};
-    _timeUp = false;
     _combo = 0;
     _poin = 0;
   }
@@ -93,7 +91,6 @@ class _MatchingPuzzleScreenState extends State<MatchingPuzzleScreen>
         if (_secondsLeft > 0) {
           _secondsLeft--;
         } else {
-          _timeUp = true;
           t.cancel();
           _autoCheck();
         }
