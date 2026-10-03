@@ -194,7 +194,7 @@ class _AboutScreenState extends State<AboutScreen> with TickerProviderStateMixin
                     _buildInfoCard(
                       title: 'Tujuan Penelitian',
                       icon: Icons.school_rounded,
-                      content: 'Aplikasi ini dikembangkan sebagai bagian dari skripsi untuk memenuhi persyaratan gelar Sarjana Pendidikan di Universitas Riau. Tujuannya adalah mengembangkan media pembelajaran interaktif yang efektif untuk meningkatkan pemahaman mahasiswa pada materi anatomi tubuh manusia.',
+                      content: 'Aplikasi ini dikembangkan sebagai bagian dari skripsi untuk memenuhi persyaratan gelar Sarjana Pendidikan S1 di Universitas Riau. Tujuannya adalah mengembangkan media pembelajaran aplikasi quiz game anatomi tubuh manusia berbasis android yang layak digunakan untuk mendukung pembelajaran anatomi mahasiswa pendidikan kepelatihan olahraga.',
                     ),
 
                     SizedBox(height: r.h(10)),
@@ -233,13 +233,13 @@ class _AboutScreenState extends State<AboutScreen> with TickerProviderStateMixin
                           children: [
                             Text('MariaUlva',
                               style: GoogleFonts.poppins(fontSize: r.sp(18), fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                            Text('Pengembang · Skripsi Biologi',
+                            Text('Pengembang · Skripsi Pendidikan Kepelatihan Olahraga',
                               style: GoogleFonts.inter(fontSize: r.sp(12), color: AppColors.textSecondary)),
                             SizedBox(height: r.h(4)),
                             Container(
                               padding: EdgeInsets.symmetric(horizontal: r.padXs + 4, vertical: r.padXs - 1),
                               decoration: BoxDecoration(color: AppColors.primaryPale, borderRadius: BorderRadius.circular(r.padXs + 2)),
-                              child: Text('Tahun Akademik 2024/2025',
+                              child: Text('Angkatan 2023',
                                 style: GoogleFonts.inter(fontSize: r.sp(11), fontWeight: FontWeight.w600, color: AppColors.primary)),
                             ),
                           ],
